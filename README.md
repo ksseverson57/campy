@@ -1,2 +1,2 @@
 # CamPy
-python package for streaming video from multiple cameras
+Python package for streaming video from multiple cameras to disk. Features real-time compression and debayering using FFmpeg.
