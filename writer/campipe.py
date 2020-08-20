@@ -2,8 +2,10 @@
 
 """
 from imageio import get_writer
+from imageio_ffmpeg import write_frames
 import os
 import time
+import logging
 
 def OpenWriter(
 		c, # camera index
@@ -11,69 +13,93 @@ def OpenWriter(
 		frameRate,
 		gpu=0, # idx of gpu
 		quality=19, # int 0-55, 0 is lossless, 19-21 is "visually lossless"
-		# vf='scale=iw:ih', # debayer 'scale=src_format=bayer_bggr8'
+		vf='scale=src_format=bayer_bggr8', # default 'scale=iw:ih' # debayer 'scale=src_format=bayer_bggr8'
+		pixelFormatInput = 'rgb24', # 'rgb24' for RGB source, 'bayer_bggr8' for bayer source
+		pixelFormatOutput = 'rgb0',
 		fname='0',
 		ext='.mp4',
+		codec='h264_nvenc',
 		loglevel='quiet', # 'warning', 'quiet', 'info'
+		frameHeight=1024,
+		frameWidth=1152,
 		):
 
-    folder_name = os.path.join(videoFolder, 'Camera' + str(c+1))
-    file_name = os.path.join(folder_name, fname + ext)
-    
-    while(True):
-        try:
-            try:
-                writer = get_writer(
-                    file_name, 
-                    fps = frameRate, 
-                    codec = 'h264_nvenc',  # GPU-accel'd encoding 'h264_nvenc' 'hevc_nvenc'
-                    mode = 'I',
-                    quality = None,  # disables variable compression
-                    pixelformat = 'rgb0',  # keep it as RGB colours
-                    ffmpeg_log_level = loglevel,
-                    ffmpeg_params = [
-                        '-preset', 'fast',
-                        # '-zerolatency', '1',
-                        '-qp', str(quality),
-                        # '-vf', vf,
-                        '-pix_fmt', 'rgb0',
-                        '-bf:v', '0',
-                        '-gpu', str(gpu)],)
-                print('Opened:', file_name, 'using GPU', gpu)
-                break
+	folder_name = os.path.join(videoFolder, 'Camera' + str(c+1))
+	file_name = os.path.join(folder_name, fname + ext)
 
-            except FileNotFoundError:
-                os.makedirs(folder_name)
-                print('Made directory {}.'.format(folder_name))
-            except:
-                time.sleep(0.01)
-        except KeyboardInterrupt:
-            break
+	if not os.path.isdir(folder_name):
+		os.makedirs(folder_name)
+		print('Made directory {}.'.format(folder_name))
+	
+	while(True):
+		try:
+			try:
+				writer = write_frames(
+							file_name,
+							[frameWidth, frameHeight], # size [W,H]
+							fps=frameRate,
+							quality=None,
+							codec=codec,  # H.265 hardware accel'd (GPU) 'hevc_nvenc'; H.264 'h264_nvenc'
+							pix_fmt_in=pixelFormatInput, # 'bayer_bggr8', 'gray', 'rgb24', 'bgr0', 'yuv420p'
+							pix_fmt_out=pixelFormatOutput, # 'rgb0' (fastest), 'yuv420p'(slower), 'bgr0' (slower)
+							bitrate=None,
+							ffmpeg_log_level=loglevel, # 'warning', 'quiet', 'info'
+							input_params=['-an'], # '-an' no audio
+							output_params=[
+								'-preset', 'fast', # set to 'fast', 'llhp', or 'llhq' for h264 or hevc
+								'-qp', str(quality),
+								'-r:v', str(frameRate), # important to play nice with vsync '0'
+								'-bf:v', '0',
+								'-vsync', '0',
+								'-2pass', '0',
+								'-gpu', str(gpu),
+								],
+							)
 
-    return writer
+				writer.send(None) # Initialize the generator
+				print('Opened:', file_name, 'using GPU', gpu)
+				break
+			except:
+				time.sleep(0.1)
 
-def WriteFrames(c, writer, writeQueue, frameTimeInSec, frameRate):
-    countOfImagesToGrab = frameTimeInSec*frameRate
-    cnt = 0
-    while(True):
-        try:
-            if writeQueue:
-                writer.append_data(writeQueue.popleft())
-                cnt+=1
-            else:
-                time.sleep(0.0001)
+		except KeyboardInterrupt:
+			break
 
-            if cnt == countOfImagesToGrab:
-                time.sleep(1)
-                writer.close()
-                break
+	return writer
 
-        except KeyboardInterrupt:
-            try:
-                print('Closing video writer for camera {}. Please wait...')
-                time.sleep(5)
-                writer.close()
-                break
-            except KeyboardInterrupt:
-                writer.close()
-                break
+def WriteFrames(c, videoFolder, gpus, writeQueue, meta):
+
+	frameRate = meta['FrameRate']
+	recTimeInSec = meta['RecordingSetDuration']
+
+	# Start ffmpeg video writer 
+	writer = OpenWriter(
+				c, 
+				videoFolder, 
+				frameRate, 
+				gpu=gpus[c], 
+				pixelFormatInput=meta['PixelFormatInput'],
+				pixelFormatOutput=meta['PixelFormatOutput'],
+				frameHeight=meta['FrameHeight'],
+				frameWidth=meta['FrameWidth'])
+
+	countOfImagesToGrab = recTimeInSec*frameRate
+	message = ''
+
+	while(True):
+		if writeQueue:
+			message = writeQueue.popleft()
+			if not isinstance(message, str):
+				# writer.append_data(message) # old imageio get_writer
+				writer.send(message)
+			elif message == 'STOP':
+				try:
+					print('Closing video writer for camera {}. Please wait...'.format(c+1))
+					time.sleep(1)
+					writer.close()
+					break
+				except KeyboardInterrupt:
+					break
+		else:
+			time.sleep(0.0001)
+
