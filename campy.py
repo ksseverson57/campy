@@ -24,7 +24,7 @@ from collections import deque
 import multiprocessing as mp
 
 if sys.platform == "linux" or sys.platform == "linux2":
-    os.environ['IMAGEIO_FFMPEG_EXE'] = '/home/usr/Documents/ffmpeg/ffmpeg'
+	os.environ['IMAGEIO_FFMPEG_EXE'] = '/home/usr/Documents/ffmpeg/ffmpeg'
 # elif sys.platform == "win32":
 #     os.environ['IMAGEIO_FFMPEG_EXE'] = 'C:\\ProgramData\\FFmpeg\\bin\\ffmpeg'
 
@@ -41,9 +41,9 @@ recTimeInSec = float(sys.argv[5])
 
 # User-set Parameters
 # To-do: 
-    # write config - include system, camera, and user configurations?
-    # read config
-    # replace campy input arguments with config.yaml input
+	# write config - include system, camera, and user configurations?
+	# read config
+	# replace campy input arguments with config.yaml input
 
 # Recording config
 # videoFolder = #
@@ -52,65 +52,89 @@ recTimeInSec = float(sys.argv[5])
 # numCams = 6
 
 # System config (e.g. 3 gpus)
-gpuToUse = [0, 0, 0, 2, 2, 2] # list of GPU indices for hardware compression (e.g. 0,1,2)
+gpus = [0, 0, 0, 2, 2, 2] # list of GPU indices for hardware compression (e.g. 0,1,2)
 
 # Camera config
 # camSettings list (1 for each camera) or 1 for all
-# camProducer = basler
-# camPixelFormat = rgb # bayer, gray
+cameraMake = 'Basler'
+pixelFormatInput = 'rgb24' # 'rgb24' 'bayer_bggr8'
 
-# ffmpeg config
-# quality = 19
+# FFmpeg config
+pixelFormatOutput = 'rgb0'
+quality = '21'
 # codec = 'H264_nvenc' # hevc_nvenc
 
 # User default settings
 chunkLengthInSec = 30
 displayFrameRate = 10 # In hz, set up to ~30
-displayDownSample = 2 # Downsampling factor for displaying images
+displayDownsample = 2 # Downsampling factor for displaying images
+
+def OpenMetadata():
+	meta = {}
+
+	# System/User Configuration metadata
+	meta['FrameRate'] = frameRate
+	meta['RecordingSetDuration'] = recTimeInSec
+	meta['NumCameras'] = numCams
+
+	# Camera Configuration metadata
+	meta['CameraMake'] = cameraMake
+	meta['PixelFormatInput'] = pixelFormatInput
+
+	# FFmpeg Configuration metadata
+	meta['PixelFormatOutput'] = pixelFormatOutput
+	meta['CompressionQuality'] = quality
+
+	# Other metadata
+	# date
+	# time
+	# hardware?
+	# os?
+
+	return meta
 
 def main(c):
-    # Initialize queues for display window and video writer
-    dispQueue = deque([],2)
-    writeQueue = deque()
+	# Initializes metadata dictionary for this camera stream
+	# and inserts important configuration details
+	meta = OpenMetadata()
 
-    # Open camera c
-    camera = cam.Open(c, camSettings)
+	# Initialize queues for display window and video writer
+	dispQueue = []
+	# dispQueue = deque([],2)
+	writeQueue = deque()
 
-    # Start ffmpeg video writer 
-    writer = campipe.OpenWriter(c, videoFolder, frameRate, gpu=gpuToUse[c])
+	# Open camera c
+	camera, meta = cam.Open(c, camSettings, meta)
 
-    # Start image window display ('consumer' thread)
-    threading.Thread(
-        target=display.DisplayFrames, 
-        daemon=True, 
-        args=(c, dispQueue,)
-        ).start()
+	# Start image window display ('consumer' thread)
+	if meta['CameraMake'] != 'basler':
+		dispQueue = deque([],2)
 
-    # Start video writer ('consumer' thread)
-    threading.Thread(
-        target=campipe.WriteFrames, 
-        daemon=True, 
-        args=(c, writer, writeQueue, frameRate, recTimeInSec,)
-        ).start()
+		threading.Thread(
+			target=display.DisplayFrames, 
+			daemon=True, 
+			args=(c, dispQueue, displayDownsample, meta,)
+			).start()
 
-    # Start retrieving frames (main 'producer' thread)
-    meta = cam.GrabFrames(c, camera, dispQueue, writeQueue, 
-        frameRate, recTimeInSec, displayFrameRate, displayDownSample)
+	# Start video writer ('consumer' thread)
+	threading.Thread(
+		target=campipe.WriteFrames, 
+		daemon=True, 
+		args=(c, videoFolder, gpus, writeQueue, meta,)
+		).start()
 
-    # Once GrabFrames is finished grabbing, close up camera
-    cam.Close(c, camera)
-
-    # Save metadata at end of recording (frame numbers, timestamps, camera parameters etc.)
-    cam.SaveMetadata(c, meta, videoFolder)
+	# Start retrieving frames (main 'producer' thread)
+	cam.GrabFrames(c, camera, meta, videoFolder, writeQueue, 
+		dispQueue, displayFrameRate, displayDownsample)
 
 if __name__ == '__main__':
 
-    if sys.platform=='win32':
-        pool = mp.Pool(processes=numCams)
-        pool.map(main, range(0, numCams))
+	if sys.platform=='win32':
+		pool = mp.Pool(processes=numCams)
+		pool.map(main, range(0, numCams))
 
-    elif sys.platform == 'linux' or sys.platform == 'linux2':
-        ctx = mp.get_context('spawn') # for linux compatibility
-        pool = ctx.Pool(processes=numCams)
-        p = pool.map_async(main, range(0, numCams))
-        p.get()
+	elif sys.platform == 'linux' or sys.platform == 'linux2':
+		ctx = mp.get_context('spawn') # for linux compatibility
+		pool = ctx.Pool(processes=numCams)
+		p = pool.map_async(main, range(0, numCams))
+		p.get()
