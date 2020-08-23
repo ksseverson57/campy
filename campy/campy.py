@@ -22,7 +22,7 @@ import sys
 import threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import CampyDefaults
+from campy import CampyParams
 from campy.cameras.basler import cam
 from campy.writer import campipe
 from campy.display import display
@@ -219,7 +219,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Campy CLI", formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.set_defaults(**CampyDefaults.__dict__)
+    parser.set_defaults(**CampyParams.__dict__)
     params = parse_clargs(parser)
     params = combine_config_and_clargs(params)
     acquire(params)

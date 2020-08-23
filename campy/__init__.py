@@ -1,4 +1,4 @@
-class CampyDefaults():
+class CampyParams():
     videoFolder = "./test"
     camSettings = "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
     numCams = 1
