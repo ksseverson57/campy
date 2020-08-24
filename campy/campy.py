@@ -4,12 +4,11 @@ campy Python-based simultaneous multi-camera recording script implementing real-
 Output is (by default) one MP4 video file for each camera
 
 Usage: 
-cd to  stored (separate 'CameraN' folders will be generated)
+
 campy-acquire ./configs/config.yaml
 
 """
 
-# Multiprocessing Pool method sustainable up to 1 MP @ 100 Hz? (24-bit RGB)
 import numpy as np
 import os
 import time
@@ -149,6 +148,11 @@ def parse_clargs(parser):
         dest="chunkLengthInSec",
         type=int,
         help="Length of video chunks in seconds for reporting recording progress.",
+    )
+    parser.add_argument(
+        "--ffmpeg_path",
+        dest="ffmpeg_path",
+        help="Location of ffmpeg binary for imageio.",
     )
     parser.add_argument(
         "--displayFrameRate",
