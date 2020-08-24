@@ -31,8 +31,11 @@ def draw_figure(num):
 
 	return figure, imageWindow
 
-def DisplayFrames(c, dispQueue, ds, meta):
-	if sys.platform == "win32" and meta['CameraMake'] == 'basler':
+def DisplayFrames(cam_params, dispQueue,):
+
+	n_cam = cam_params['n_cam']
+	
+	if sys.platform == "win32" and cam_params['cameraMake'] == 'basler':
 		imageWindow = pylon.PylonImageWindow()
 		imageWindow.Create(c)
 		imageWindow.Show()
@@ -54,7 +57,7 @@ def DisplayFrames(c, dispQueue, ds, meta):
 				break
 		imageWindow.Close()
 	else:
-		figure, imageWindow = draw_figure(c+1)
+		figure, imageWindow = draw_figure(n_cam+1)
 		while(True):
 			try:
 				if dispQueue:
