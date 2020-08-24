@@ -5,15 +5,16 @@ frameRate: 100
 recTimeInSec: 10
 
 # Camera parameters
-cameraMake: 'Basler'
+cameraMake: "basler"
 numCams: 1
 cameraNames: ['Camera1']
 
 # Compression parameters
+ffmpeg_path: [] #["/home/usr/Documents/ffmpeg/ffmpeg"]
 gpus: [0]
-pixelFormatInput: 'rgb24' # 'bayer_bggr8' 'rgb24'
-pixelFormatOutput: 'rgb0'
-quality: '21'
+pixelFormatInput: "rgb24" # 'bayer_bggr8' 'rgb24'
+pixelFormatOutput: "rgb0"
+quality: "21"
 
 # Display parameters
 chunkLengthInSec: 30
