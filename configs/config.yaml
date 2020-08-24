@@ -1,13 +1,21 @@
+# Recording parameters
 videoFolder: "./test"
-camSettings: "settings.pfs"
-numCams: 1
-frameRate: 60
-recTimeInSec: 60
-gpus: [0]
+camSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
+frameRate: 100
+recTimeInSec: 10
+
+# Camera parameters
 cameraMake: 'Basler'
-pixelFormatInput: 'rgb24'
+numCams: 1
+cameraNames: ['Camera1']
+
+# Compression parameters
+gpus: [0]
+pixelFormatInput: 'rgb24' # 'bayer_bggr8' 'rgb24'
 pixelFormatOutput: 'rgb0'
 quality: '21'
+
+# Display parameters
 chunkLengthInSec: 30
 displayFrameRate: 10
 displayDownsample: 2
