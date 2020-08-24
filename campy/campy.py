@@ -17,21 +17,14 @@ import sys
 import threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import CampyParams
 from campy.cameras.basler import cam
+from campy import CampyParams
 from campy.writer import campipe
 from campy.display import display
 import argparse
 import ast
 import yaml
 
-
-
-# TODO(FFMPEG): We can also just use any ffmpeg binary on the system path. 
-if sys.platform == "linux" or sys.platform == "linux2":
-    os.environ["IMAGEIO_FFMPEG_EXE"] = "/home/usr/Documents/ffmpeg/ffmpeg"
-elif sys.platform == "win32":
-    os.environ['IMAGEIO_FFMPEG_EXE'] = 'C:\\ProgramData\\FFmpeg\\bin\\ffmpeg'
 
 
 def load_config(config_path):
@@ -61,6 +54,9 @@ def create_cam_params(params, n_cam):
 def acquire_one_camera(n_cam):
     # Initializes metadata dictionary for this camera stream
     # and inserts important configuration details
+
+    # cam_params["cameraMake"] == "basler":
+    #     from campy.cameras.basler import cam
 
     cam_params = create_cam_params(params, n_cam)
 
@@ -189,6 +185,10 @@ def combine_config_and_clargs(clargs):
     return params
 
 def main():
+
+    # TODO(FFMPEG): We can also just use any ffmpeg binary on the system path. 
+    if params["ffmpeg_path"]:
+        os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpeg_path"]
 
     if sys.platform == "win32":
         pool = mp.Pool(processes=params['numCams'])
