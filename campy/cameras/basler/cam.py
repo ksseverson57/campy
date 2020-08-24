@@ -13,6 +13,7 @@ from collections import deque
 import csv
 
 def Open(cam_params, bufferSize=500, validation=False):
+
 	n_cam = cam_params["n_cam"]
 
 	# Open and load features for all cameras
@@ -96,8 +97,7 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 					except Exception as e:
 						logging.error('Caught exception: {}'.format(e))
 				else:
-					if dispQueue:
-						dispQueue.append(grabResult.Array[::ds,::ds])
+					dispQueue.append(grabResult.Array[::ds,::ds])
 
 			grabResult.Release()
 
