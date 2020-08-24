@@ -4,13 +4,8 @@ campy Python-based simultaneous multi-camera recording script implementing real-
 Output is (by default) one MP4 video file for each camera
 
 Usage: 
-cd to folder where videos will be stored (separate 'CameraN' folders will be generated)
-python campy.py ./campy_config.yaml
-
-Usage example:
-python C:\\Code\\campy\\campy.py D:\\20200401\\test\\videos "C:\\Users\\Wang Lab\\Documents\\Basler\\Pylon5_settings\\acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs" 6 100 10
-
-python ~/Documents/campy/campy2.py /media/kyle/Video1/20200401/test/videos /home/kyle/Documents/Basler/acA1920-150uc_1152x1024p_100fps_trigger_BGR.pfs 4 100 5
+cd to  stored (separate 'CameraN' folders will be generated)
+campy-acquire ./configs/config.yaml
 
 """
 
@@ -30,36 +25,29 @@ import argparse
 import ast
 import yaml
 
+
+
 # TODO(FFMPEG): We can also just use any ffmpeg binary on the system path. 
 if sys.platform == "linux" or sys.platform == "linux2":
     os.environ["IMAGEIO_FFMPEG_EXE"] = "/home/usr/Documents/ffmpeg/ffmpeg"
-# elif sys.platform == "win32":
-#     os.environ['IMAGEIO_FFMPEG_EXE'] = 'C:\\ProgramData\\FFmpeg\\bin\\ffmpeg'
-
+elif sys.platform == "win32":
+    os.environ['IMAGEIO_FFMPEG_EXE'] = 'C:\\ProgramData\\FFmpeg\\bin\\ffmpeg'
 
 
 def load_config(config_path):
     with open(config_path, 'rb') as f:
         config = yaml.safe_load(f)
-        print(config)
+        # print(config)
     return config
 
 
-def OpenMetadata(params):
-    meta = {}
-
-    # System/User Configuration metadata
-    meta["FrameRate"] = params["frameRate"]
-    meta["RecordingSetDuration"] = params["recTimeInSec"]
-    meta["NumCameras"] = params["numCams"]
-
-    # Camera Configuration metadata
-    meta["CameraMake"] = params["cameraMake"]
-    meta["PixelFormatInput"] = params["pixelFormatInput"]
-
-    # FFmpeg Configuration metadata
-    meta["PixelFormatOutput"] = params["pixelFormatOutput"]
-    meta["CompressionQuality"] = params["quality"]
+def create_cam_params(params, n_cam):
+    # Insert camera-specific metadata from parameters into cam_params dictionary
+    cam_params = params
+    cam_params["n_cam"] = n_cam
+    cam_params["cameraName"] = params["cameraNames"][n_cam]
+    cam_params["gpu"] = params["gpus"][n_cam]
+    cam_params["baseFolder"] = os.getcwd()
 
     # Other metadata
     # date
@@ -67,51 +55,46 @@ def OpenMetadata(params):
     # hardware?
     # os?
 
-    return meta
+    return cam_params
 
 
-def acquire_one_camera(params):
+def acquire_one_camera(n_cam):
     # Initializes metadata dictionary for this camera stream
     # and inserts important configuration details
-    n_cam = params['n_cam']
-    meta = OpenMetadata(params)
 
-    # Initialize queues for display window and video writer
-    dispQueue = []
-    # dispQueue = deque([],2)
-    writeQueue = deque()
+    cam_params = create_cam_params(params, n_cam)
 
     # Open camera n_cam
-    camera, meta = cam.Open(n_cam, params["camSettings"], meta)
+    camera, cam_params = cam.Open(cam_params)
+
+    # Initialize queues for display window and video writer
+    writeQueue = deque()
+    stopQueue = deque([], 1)
 
     # Start image window display ('consumer' thread)
-    if meta["CameraMake"] != "basler":
+    if sys.platform == 'win32' and cam_params["cameraMake"] == "basler":
+        dispQueue = []
+    else:
         dispQueue = deque([], 2)
-
         threading.Thread(
             target=display.DisplayFrames,
             daemon=True,
-            args=(n_cam, dispQueue, params["displayDownsample"], meta,),
+            args=(cam_params, dispQueue,),
         ).start()
 
-    # Start video writer ('consumer' thread)
+    # Start grabbing frames ('producer' thread)
     threading.Thread(
-        target=campipe.WriteFrames,
+        target = cam.GrabFrames,
         daemon=True,
-        args=(n_cam, params["videoFolder"], params["gpus"], writeQueue, meta,),
-    ).start()
+        args = (cam_params,
+                camera,
+                writeQueue,
+                dispQueue,
+                stopQueue),
+        ).start()
 
-    # Start retrieving frames (main 'producer' thread)
-    cam.GrabFrames(
-        n_cam,
-        camera,
-        meta,
-        params["videoFolder"],
-        writeQueue,
-        dispQueue,
-        params["displayFrameRate"],
-        params["displayDownsample"],
-    )
+    # Start video file writer (main 'consumer' thread)
+    campipe.WriteFrames(cam_params, writeQueue, stopQueue)
 
 def parse_clargs(parser):
     parser.add_argument(
@@ -142,17 +125,23 @@ def parse_clargs(parser):
         help="List of integers assigning the gpu id for each camera.",
     )
     parser.add_argument(
+        "--cameraNames",
+        dest="cameraNames",
+        type=ast.literal_eval,
+        help="List of unique camera names for each camera.",
+    )
+    parser.add_argument(
         "--cameraMake", dest="cameraMake", help="Camera make",
     )
     parser.add_argument(
         "--pixelFormatInput",
         dest="pixelFormatInput",
-        help="Pixel format input.",
+        help="Pixel format input. Use 'rgb24' for RGB or 'bayer_bggr8' for 8-bit bayer pattern.",
     )
     parser.add_argument(
         "--pixelFormatOutput",
         dest="pixelFormatOutput",
-        help="Pixel format output.",
+        help="Pixel format output. Use 'rgb0' for best results.",
     )
     parser.add_argument(
         "--quality",
@@ -163,7 +152,7 @@ def parse_clargs(parser):
         "--chunkLengthInSec",
         dest="chunkLengthInSec",
         type=int,
-        help="Length of video chunks in seconds.",
+        help="Length of video chunks in seconds for reporting recording progress.",
     )
     parser.add_argument(
         "--displayFrameRate",
@@ -199,27 +188,20 @@ def combine_config_and_clargs(clargs):
             params[param] = value
     return params
 
-def acquire(params):
-    # Build the list of params for all cameras
-    cam_params = [params for i in range(0, params['numCams'])]
-    for n_cam, cam_param in enumerate(cam_params):
-        cam_param['n_cam'] = n_cam
+def main():
 
     if sys.platform == "win32":
         pool = mp.Pool(processes=params['numCams'])
-        pool.map(acquire_one_camera, cam_params)
+        pool.map(acquire_one_camera, range(0,params['numCams']))
 
     elif sys.platform == "linux" or sys.platform == "linux2":
         ctx = mp.get_context("spawn")  # for linux compatibility
         pool = ctx.Pool(processes=params['numCams'])
-        p = pool.map_async(acquire_one_camera, cam_params)
+        p = pool.map_async(acquire_one_camera, range(0,params['numCams']))
         p.get()
 
-def main():
-    parser = argparse.ArgumentParser(
+parser = argparse.ArgumentParser(
         description="Campy CLI", formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.set_defaults(**CampyParams.__dict__)
-    params = parse_clargs(parser)
-    params = combine_config_and_clargs(params)
-    acquire(params)
+        )
+params = parse_clargs(parser)
+params = combine_config_and_clargs(params)
