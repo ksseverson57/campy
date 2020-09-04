@@ -8,7 +8,6 @@ Usage:
 campy-acquire ./configs/config.yaml
 
 """
-
 import numpy as np
 import os
 import time
@@ -16,14 +15,12 @@ import sys
 import threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy.cameras.basler import cam
 from campy import CampyParams
 from campy.writer import campipe
 from campy.display import display
 import argparse
 import ast
 import yaml
-
 
 
 def load_config(config_path):
@@ -35,6 +32,7 @@ def load_config(config_path):
 
 def create_cam_params(params, n_cam):
     # Insert camera-specific metadata from parameters into cam_params dictionary
+    
     cam_params = params
     cam_params["n_cam"] = n_cam
     cam_params["cameraName"] = params["cameraNames"][n_cam]
@@ -54,8 +52,11 @@ def acquire_one_camera(n_cam):
     # Initializes metadata dictionary for this camera stream
     # and inserts important configuration details
 
-    # cam_params["cameraMake"] == "basler":
-    #     from campy.cameras.basler import cam
+    if cam_params["cameraMake"] == "basler":
+        from campy.cameras.basler import cam
+
+    elif cam_params["cameraMake"] == "flir":
+        from campy.cameras.flir import cam
 
     cam_params = create_cam_params(params, n_cam)
 
