@@ -1,14 +1,14 @@
 """
-CamPy Python-based multi-camera recording software.
-Integrates machine vision camera API with ffmpeg real-time compression
-Outputs are one MP4 video file for each camera and metadata files
+CamPy: Python-based multi-camera recording software.
+Integrates machine vision camera APIs with ffmpeg real-time compression.
+Outputs one MP4 video file for each camera and metadata files
 
 'campy' is the main console. 
 User inputs are loaded from config yaml file using a command line interface (CLI) into the 'params' object.
-Params are then assigned to each camera in the 'cam_params' object.
-	* Camera loading index and order is set by 'cameraSelection'.
-	* If string, this param is applied to all cameras.
-	* If list of strings, params are assigned to each camera, using the order in cameraSelection.
+Params are assigned to each camera stream in the 'cam_params' object.
+	* Camera index is set by 'cameraSelection'.
+	* If param is a string, it is applied to all cameras.
+	* If param is list of strings, it is assigned to each camera, ordered by camera index.
 Camera streams are acquired and encoded in parallel using multiprocessing.
 
 Usage: 
@@ -28,22 +28,31 @@ from campy.display import display
 import argparse
 import ast
 import yaml
+import logging
 
 
 def LoadConfig(config_path):
-	with open(config_path, 'rb') as f:
-		config = yaml.safe_load(f)
+	try:
+		with open(config_path, 'rb') as f:
+			config = yaml.safe_load(f)
+	except Exception as e:
+		logging.error('Caught exception: {}'.format(e))
 	return config
 
-def OptParams(params, cam_params, opt_params_list):
+def OptParams(params, cam_params, opt_params_dict):
 	# Optionally, user provides a single string or a list of strings, equal in size to numCams
 	# String is passed to all cameras. Else, each list item is passed to its respective camera
 	n_cam = cam_params["n_cam"]
+	opt_params_list = list(opt_params_dict)
 	for i in range(len(opt_params_list)):
-		if type(params[opt_params_list[i]]) is list:
-			if len(params[opt_params_list[i]]) == params["numCams"]:
-				cam_params[opt_params_list[i]] = params[opt_params_list[i]][n_cam]
-			else: print('{} list is not the same size as numCams.'.format(opt_params_list[i]))
+		key = opt_params_list[i]
+		if key in params:
+			if type(params[key]) is list:
+				if len(params[key]) == params["numCams"]:
+					cam_params[key] = params[key][n_cam]
+				else: print('{} list is not the same size as numCams.'.format(key))
+		else:
+			cam_params[key] = opt_params_dict[key]
 	return cam_params
 
 def CreateCamParams(params, n_cam):
@@ -52,11 +61,27 @@ def CreateCamParams(params, n_cam):
 	cam_params["n_cam"] = n_cam
 	cam_params["cameraName"] = params["cameraNames"][n_cam]
 	cam_params["baseFolder"] = os.getcwd()
-	opt_params_list = ["frameRate", "cameraSelection", "cameraSettings", "cameraMake", 
-						"pixelFormatInput", "pixelFormatOutput", "frameWidth", "frameHeight",
-						"ffmpegLogLevel", "gpuID", "gpuMake", "codec", "quality",
-						"chunkLengthInSec", "displayFrameRate", "displayDownsample"]
-	cam_params = OptParams(params, cam_params, opt_params_list)
+
+	# Default configuration parameters dictionary. key
+	# Default value is used if variable is not present in config or overwritten by cameraSettings.
+	opt_params_dict = {"frameRate": 100,
+						"cameraSelection": n_cam,
+						"cameraSettings": "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs",
+						"cameraMake": "basler", 
+						"pixelFormatInput": "rgb24", 
+						"pixelFormatOutput": "rgb0", 
+						"frameWidth": 1152,
+						"frameHeight": 1024,
+						"ffmpegLogLevel": "quiet",
+						"gpuID": -1,
+						"gpuMake": "nvidia",
+						"codec": "h264",
+						"quality": "21",
+						"chunkLengthInSec": 30,
+						"displayFrameRate": 10,
+						"displayDownsample": 2,}
+
+	cam_params = OptParams(params, cam_params, opt_params_dict)
 	return cam_params
 
 def AcquireOneCamera(n_cam):
