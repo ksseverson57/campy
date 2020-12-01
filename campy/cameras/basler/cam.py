@@ -1,45 +1,47 @@
+"""
+
+"""
 
 import pypylon.pylon as pylon
 import pypylon.genicam as geni
-
 import os
 import time
 import logging
 import sys
-
 import numpy as np
 from collections import deque
-
 import csv
 
-def Open(cam_params, bufferSize=500, validation=False):
-
+def OpenCamera(cam_params, bufferSize=500, validation=False):
 	n_cam = cam_params["n_cam"]
+	cam_index = cam_params["cameraSelection"]
+	camera_name = cam_params["cameraName"]
 
 	# Open and load features for all cameras
 	tlFactory = pylon.TlFactory.GetInstance()
 	devices = tlFactory.EnumerateDevices()
-	camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateDevice(devices[n_cam]))
-	serial = devices[n_cam].GetSerialNumber()
+	camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateDevice(devices[cam_index]))
+	serial = devices[cam_index].GetSerialNumber()
 	camera.Close()
 	camera.StopGrabbing()
 	camera.Open()
-	pylon.FeaturePersistence.Load(cam_params['camSettings'], camera.GetNodeMap(), validation)
+	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), validation)
 
+	# Get camera information and save to cam_params for metadata
 	cam_params['cameraSerialNo'] = serial
 	cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
+
+	# Set features manually or automatically, depending on configuration
 	cam_params['frameWidth'] = camera.Width.GetValue()
 	cam_params['frameHeight'] = camera.Height.GetValue()
 
 	# Start grabbing frames (OneByOne = first in, first out)
 	camera.MaxNumBuffer = bufferSize
-
-	print("Started camera", n_cam, "serial#", serial)
+	print("Started", camera_name, "serial#", serial)
 
 	return camera, cam_params
 
 def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
-
 	n_cam = cam_params["n_cam"]
 
 	cnt = 0
@@ -50,30 +52,29 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 	grabdata['timeStamp'] = []
 	grabdata['frameNumber'] = []
 
-	frameRate = cam_params['frameRate']
-	recTimeInSec = cam_params['recTimeInSec']
-	chunkLengthInSec = cam_params["chunkLengthInSec"]
-	ds = cam_params["displayDownsample"]
-	displayFrameRate = cam_params["displayFrameRate"]
+	numImagesToGrab = cam_params['recTimeInSec']*cam_params['frameRate']
+	chunkLengthInFrames = int(round(cam_params["chunkLengthInSec"]*cam_params['frameRate']))
 
-	frameRatio = int(round(frameRate/displayFrameRate))
-	numImagesToGrab = recTimeInSec*frameRate
-	chunkLengthInFrames = int(round(chunkLengthInSec*frameRate))
+	if cam_params["displayFrameRate"] <= 0:
+		frameRatio = float('inf')
+	elif cam_params["displayFrameRate"] > 0 and cam_params["displayFrameRate"] <= cam_params['frameRate']:
+		frameRatio = int(round(cam_params['frameRate']/cam_params["displayFrameRate"]))
+	else:
+		frameRatio = cam_params['frameRate']
 
-	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
+	if sys.platform=='win32':
 		imageWindow = pylon.PylonImageWindow()
 		imageWindow.Create(n_cam)
 		imageWindow.Show()
 
 	camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
-	print("Camera", str(n_cam+1), "ready to trigger.")
+	print(cam_params["cameraName"], "ready to trigger.")
 
 	while(camera.IsGrabbing()):
 		if stopQueue or cnt >= numImagesToGrab:
-			close_camera(cam_params, camera, grabdata)
+			CloseCamera(cam_params, camera, grabdata)
 			writeQueue.append('STOP')
 			break
-
 		try:
 			# Grab image from camera buffer if available
 			grabResult = camera.RetrieveResult(timeout, pylon.TimeoutHandling_ThrowException)
@@ -97,23 +98,20 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 					except Exception as e:
 						logging.error('Caught exception: {}'.format(e))
 				else:
-					dispQueue.append(grabResult.Array[::ds,::ds])
-
+					dispQueue.append(grabResult.Array[::cam_params["displayDownsample"],
+													::cam_params["displayDownsample"]])
 			grabResult.Release()
 
 			if cnt % chunkLengthInFrames == 0:
 				fps_count = int(round(cnt/grabtime))
 				print('Camera %i collected %i frames at %i fps.' % (n_cam,cnt,fps_count))
-
 		# Else wait for next frame available
 		except geni.GenericException:
 			time.sleep(0.0001)
-
 		except Exception as e:
 			logging.error('Caught exception: {}'.format(e))
 
-def close_camera(cam_params, camera, grabdata):
-
+def CloseCamera(cam_params, camera, grabdata):
 	n_cam = cam_params["n_cam"]
 
 	print('Closing camera {}... Please wait.'.format(n_cam+1))
@@ -121,7 +119,7 @@ def close_camera(cam_params, camera, grabdata):
 	while(True):
 		try:
 			try:
-				save_metadata(cam_params,grabdata)
+				SaveMetadata(cam_params,grabdata)
 				time.sleep(1)
 				camera.Close()
 				camera.StopGrabbing()
@@ -131,32 +129,30 @@ def close_camera(cam_params, camera, grabdata):
 		except KeyboardInterrupt:
 			break
 
-def save_metadata(cam_params, grabdata):
-	
+def SaveMetadata(cam_params, grabdata):
 	n_cam = cam_params["n_cam"]
-
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
 
-	meta = cam_params
-	meta['timeStamp'] = grabdata['timeStamp']
-	meta['frameNumber'] = grabdata['frameNumber']
-
-	frame_count = meta['frameNumber'][-1]
-	time_count = meta['timeStamp'][-1]
+	# Save frame numbers and timestamps in numpy array
+	frame_count = grabdata['frameNumber'][-1]
+	time_count = grabdata['timeStamp'][-1]
 	fps_count = int(round(frame_count/time_count))
 	print('Camera {} saved {} frames at {} fps.'.format(n_cam+1, frame_count, fps_count))
-
 	try:
 		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
-		x = np.array([meta['frameNumber'], meta['timeStamp']])
+		x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
 		np.save(npy_filename,x)
 	except:
 		pass
 
-	csv_filename = os.path.join(full_folder_name, 'metadata.csv')
+	# Save other recording metadata in csv file
+	meta = cam_params
+	meta['totalFrames'] = grabdata['frameNumber'][-1]
+	meta['totalTime'] = grabdata['timeStamp'][-1]
 	keys = meta.keys()
 	vals = meta.values()
 	
+	csv_filename = os.path.join(full_folder_name, 'metadata.csv')
 	try:
 		with open(csv_filename, 'w', newline='') as f:
 			w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
