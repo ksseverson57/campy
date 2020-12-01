@@ -4,7 +4,7 @@
 
 ## Hardware/software
 - AMD or Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- Basler or FLIR machine vision camera(s)
+- Basler machine vision camera(s) *FLIR support will be added soon
 - Windows or Linux PC (with USB 3.0 or GigE ports)
 
 ## Installation
@@ -46,7 +46,7 @@ campy-acquire ./configs/config.yaml
 Written by Kyle Severson and Diego Aldarondo (2019-2020).
 
 ## Credits
-Special thanks to Tim Dunn, David Hildebrand, Paul Thompson, Zack Weaver, and Jim Roach for helpful comments.
+Special thanks to Tim Dunn, David Hildebrand, and Paul Thompson for helpful comments.
 
 ## License
 MIT License
