@@ -13,7 +13,7 @@ setup(
 					],
     entry_points={
         "console_scripts": [
-            "campy-acquire = campy.campy:main"
+            "campy-acquire = campy.campy:Main"
         ]
     }
 )
