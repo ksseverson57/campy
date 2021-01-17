@@ -9,7 +9,7 @@ numCams: 6
 cameraSelection: [0,1,2,3,4,5]  # selects which cameras are used and in which order
 cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
 cameraNames: ["Camera1","Camera2","Camera3","Camera4","Camera5","Camera6"]
-cameraMake: "basler"
+cameraMake: "flir"
 pixelFormatInput: "rgb24"
 pixelFormatOutput: "rgb0"
 

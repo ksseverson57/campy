@@ -9,7 +9,7 @@ numCams: 3
 # cameraSelection: [0,1,2]
 cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
 cameraNames: ["Camera1","Camera2","Camera3"]
-cameraMake: "basler"
+cameraMake: "flir"
 pixelFormatInput: "rgb24"
 pixelFormatOutput: "rgb0"
 
