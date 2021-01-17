@@ -97,9 +97,6 @@ def AcquireOneCamera(n_cam):
 	elif cam_params["cameraMake"] == "flir":
 		from campy.cameras.flir import cam
 
-	# Open camera n_cam
-	camera, cam_params = cam.OpenCamera(cam_params)
-
 	# Initialize queues for video writer
 	writeQueue = deque()
 	stopQueue = deque([], 1)
@@ -120,10 +117,9 @@ def AcquireOneCamera(n_cam):
 		target = cam.GrabFrames,
 		daemon=True,
 		args = (cam_params,
-				camera,
 				writeQueue,
 				dispQueue,
-				stopQueue),
+				stopQueue,),
 		).start()
 
 	# Start video file writer (main 'consumer' thread)
@@ -188,13 +184,13 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--frameHeight", 
 		dest="frameHeight",
-		type=ast.literal_eval, 
+		type=int, 
 		help="Frame height in pixels.",
 	)
 	parser.add_argument(
 		"--frameWidth", 
 		dest="frameWidth",
-		type=ast.literal_eval, 
+		type=int, 
 		help="Frame width in pixels.",
 	)
 	parser.add_argument(
