@@ -8,7 +8,8 @@
 - Windows or Linux PC (with USB 3.0 or GigE ports)
 
 ## Installation
-- Install Basler Pylon 6 with Developer options
+- If using Basler camera, install Basler Pylon 6 with Developer options
+- If using FLIR camera, install Spinnaker SDK
 - Update graphics to latest drivers
 - Create and activate a new Python 3.7 Anaconda environment:
 ```
@@ -19,13 +20,14 @@ conda activate campy
 ```
 conda install numpy imageio imageio-ffmpeg scikit-image pyyaml
 ```
-- Install pypylon (Basler's python wrappers for their pylon camera software suite):
+- If using Basler, install pypylon (Basler's python wrappers for their pylon camera software suite):
 ```
 Download a binary wheel from the [releases](https://github.com/Basler/pypylon/releases) page.
 E.g. for Python 3.7 on Windows amd64 system, download "pypylon-1.6.0rc1-cp37-cp37m-win_amd64.whl"
 E.g. for Python 3.7 on Linux x86 system, download "pypylon-1.6.0rc1-cp37-cp37m-linux_x86_64.whl"
 Install the wheel using ```pip3 install <your downloaded wheel>.whl```
 ```
+- If using FLIR, install PySpin using the .whl file in Spinnaker SDK
 - Install campy and other dependencies by navigating to campy folder:
 ```
 python setup.py install
@@ -35,9 +37,9 @@ pip install .
 ## Usage
 - For Basler camera, use the Pylon Viewer to save your '.pfs' camera settings file. Examples are included in campy/cameras/basler/settings.
 - Edit the config.yaml file to fit your system and recording configuration.
-- To start your recording:
+- To start your recording, for example:
 ```
-campy-acquire ./configs/config.yaml
+campy-acquire ./configs/config_1cam_cpu.yaml
 ```
 - Press Ctrl^C to end recording before allotted recording time.
 - Two files, "frametimes.npy" and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
@@ -46,7 +48,7 @@ campy-acquire ./configs/config.yaml
 Written by Kyle Severson and Diego Aldarondo (2019-2020).
 
 ## Credits
-Special thanks to Tim Dunn, David Hildebrand, Paul Thompson, Zack Weaver, and Jim Roach for helpful comments.
+Special thanks to Tim Dunn, David Hildebrand, Iris Odstrcil, and Paul Thompson for helpful comments.
 
 ## License
 MIT License
