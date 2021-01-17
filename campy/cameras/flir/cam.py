@@ -2,8 +2,7 @@
 
 """
 
-import pyspin
-from pyspin import PySpin
+import PySpin
 import os
 import time
 import logging
@@ -11,6 +10,8 @@ import sys
 import numpy as np
 from collections import deque
 import csv
+
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 class TriggerType:
 	SOFTWARE = 1
@@ -71,7 +72,7 @@ def ConfigureTrigger(camera):
 
 	return result
 
-def ConfigureCustomImageSettings(nodemap):
+def ConfigureCustomImageSettings(cam_params,nodemap):
 	"""
 	Configures a number of settings on the camera including offsets  X and Y, width,
 	height, and pixel format. These settings must be applied before BeginAcquisition()
@@ -86,6 +87,8 @@ def ConfigureCustomImageSettings(nodemap):
 	print('\n*** CONFIGURING CUSTOM IMAGE SETTINGS *** \n')
 	try:
 		result = True
+		width_to_set = cam_params["frameWidth"]
+		height_to_set = cam_params["frameHeight"]
 
 		# Set maximum width
 		#
@@ -97,7 +100,8 @@ def ConfigureCustomImageSettings(nodemap):
 		# there is no reason to check against the increment.
 		node_width = PySpin.CIntegerPtr(nodemap.GetNode('Width'))
 		if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
-			width_to_set = cam_params["frameWidth"] # node_width.GetMax()
+			width_to_set = node_width.GetMax()
+			# width_to_set = cam_params["frameWidth"]
 			node_width.SetValue(width_to_set)
 			print('Width set to %i...' % node_width.GetValue())
 		else:
@@ -109,7 +113,8 @@ def ConfigureCustomImageSettings(nodemap):
 		# maximum should always be a multiple of its increment.
 		node_height = PySpin.CIntegerPtr(nodemap.GetNode('Height'))
 		if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
-			height_to_set = cam_params["frameHeight"]
+			height_to_set = node_height.GetMax()
+			# height_to_set = cam_params["frameHeight"]
 			node_height.SetValue(height_to_set)
 			print('Height set to %i...' % node_height.GetValue())
 		else:
@@ -121,7 +126,7 @@ def ConfigureCustomImageSettings(nodemap):
 
 	return result, width_to_set, height_to_set
 
-def PrintDeviceInfo(cam_params, nodemap):
+def PrintDeviceInfo(nodemap, cam_num):
 	"""
 	This function prints the device information of the camera from the transport
 	layer; please see NodeMapInfo example for more in-depth comments on printing
@@ -133,8 +138,8 @@ def PrintDeviceInfo(cam_params, nodemap):
 	:returns: True if successful, False otherwise.
 	:rtype: bool
 	"""
-	n_cam = cam_params["n_cam"]
-	print('Printing device information for camera %d... \n' % n_cam)
+	# n_cam = cam_params["n_cam"]
+	print('Printing device information for camera %d... \n' % cam_num)
 	try:
 		result = True
 		node_device_information = PySpin.CCategoryPtr(nodemap.GetNode('DeviceInformation'))
@@ -142,16 +147,20 @@ def PrintDeviceInfo(cam_params, nodemap):
 			features = node_device_information.GetFeatures()
 			for feature in features:
 				node_feature = PySpin.CValuePtr(feature)
-				print('%s: %s' % (node_feature.GetName(),
-								  node_feature.ToString() if PySpin.IsReadable(node_feature) else 'Node not readable'))
+				try:
+					print('%s: %s' % (node_feature.GetName(), node_feature.ToString() if PySpin.IsReadable(node_feature) else 'Node not readable'))
+				except:
+					pass
 		else:
 			print('Device control information not available.')
+		print()
+		return result
 	except PySpin.SpinnakerException as ex:
 		print('Error: %s' % ex)
 		return False
 	return result
 
-def OpenCamera(cam_params, frameWidth=1152, frameHeight=1024):
+def OpenCamera(cam_params):
 	# Open and load features for all cameras
 	n_cam = cam_params["n_cam"]
 	cam_index = cam_params["cameraSelection"]
@@ -162,6 +171,7 @@ def OpenCamera(cam_params, frameWidth=1152, frameHeight=1024):
 
 	# Retrieve list of cameras from the system
 	cam_list = system.GetCameras()
+	result = True
 	for i, camera in enumerate(cam_list):
 		if i == cam_index:
 			# Retrieve TL device nodemap
@@ -199,26 +209,28 @@ def OpenCamera(cam_params, frameWidth=1152, frameHeight=1024):
 	cam_params['cameraSerialNo'] = device_serial_number
 
 	# cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
-	print("Opened", camera_name, "serial#", serial)
+	print("Opened", camera_name, "serial#", device_serial_number)
 
 	# Start grabbing frames
 	camera.BeginAcquisition()
 
 	# Configure trigger
 	trigConfig = ConfigureTrigger(camera)
+	cam_params["trigConfig"] = trigConfig
 
 	# Configure custom image settings
-	settingsConfig, frameWidth, frameHeight = ConfigureCustomImageSettings(nodemap)
+	settingsConfig, frameWidth, frameHeight = ConfigureCustomImageSettings(cam_params,nodemap)
+	cam_params["settingsConfig"] = settingsConfig
 	cam_params["frameWidth"] = frameWidth
 	cam_params["frameHeight"] = frameHeight
 
-	# Clear camera list before releasing system
-	cam_list.Clear() # Do we need "cam_list" open while grabbing?
-	system.ReleaseInstance() # Do we need "system" open while grabbing?
+	print('Configured Image Settings')
+	print(trigConfig)
+	print(settingsConfig)
 
-	return cam_params, camera
+	return cam_params, camera, cam_list, system
 
-def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
+def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
 	n_cam = cam_params["n_cam"]
 
 	cnt = 0
@@ -239,6 +251,10 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 	numImagesToGrab = recTimeInSec*frameRate
 	chunkLengthInFrames = int(round(chunkLengthInSec*frameRate))
 
+	print('Opening camera')
+	cam_params, camera, cam_list, system = OpenCamera(cam_params)
+	print('Opened Camera')
+
 	grabbing = False
 	if cam_params["trigConfig"] and cam_params["settingsConfig"]:
 		grabbing = True
@@ -253,9 +269,10 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 			# Grab image from camera buffer if available
 			image_result = camera.GetNextImage()
 			if not image_result.IsIncomplete():
-				img = np.asarray(image_result, dtype="uint8")
+				# img = np.asarray(image_result, dtype="uint8")
 				# image_converted = image_result.Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
 				# img = image_converted.GetNDArray()
+				img = image_result.GetNDArray()
 
 				# Append numpy array to writeQueue for writer to append to file
 				writeQueue.append(img)
@@ -287,23 +304,28 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 		except Exception as e:
 			logging.error('Caught exception: {}'.format(e))
 
-def CloseCamera(cam_params, camera, grabdata):
-
+def CloseCamera(cam_params, system, cam_list, camera, grabdata):
 	n_cam = cam_params["n_cam"]
-
 	print('Closing camera {}... Please wait.'.format(n_cam+1))
-	# Close Basler camera after acquisition stops
+	# Close camera after acquisition stops
 	while(True):
 		try:
 			try:
 				SaveMetadata(cam_params,grabdata)
 				time.sleep(1)
-				camera.DeInit()
+				# Close cameras
 				camera.EndAcquisition()
+				camera.DeInit()
 				del camera
+				# Clear camera list before releasing system
+				cam_list.Clear()
+				# Release system instance
+				system.ReleaseInstance()
+				# camera.EndAcquisition()
 				break
-			except:
-				time.sleep(0.1)
+			except Exception as e:
+				logging.error('Caught exception: {}'.format(e))
+				break
 		except KeyboardInterrupt:
 			break
 
