@@ -100,8 +100,8 @@ def ConfigureCustomImageSettings(cam_params,nodemap):
 		# there is no reason to check against the increment.
 		node_width = PySpin.CIntegerPtr(nodemap.GetNode('Width'))
 		if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
-			width_to_set = node_width.GetMax()
-			# width_to_set = cam_params["frameWidth"]
+			# width_to_set = node_width.GetMax()
+			width_to_set = cam_params["frameWidth"]
 			node_width.SetValue(width_to_set)
 			print('Width set to %i...' % node_width.GetValue())
 		else:
@@ -113,8 +113,8 @@ def ConfigureCustomImageSettings(cam_params,nodemap):
 		# maximum should always be a multiple of its increment.
 		node_height = PySpin.CIntegerPtr(nodemap.GetNode('Height'))
 		if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
-			height_to_set = node_height.GetMax()
-			# height_to_set = cam_params["frameHeight"]
+			# height_to_set = node_height.GetMax()
+			height_to_set = cam_params["frameHeight"]
 			node_height.SetValue(height_to_set)
 			print('Height set to %i...' % node_height.GetValue())
 		else:
