@@ -10,9 +10,6 @@ import matplotlib as mpl
 mpl.use('Qt5Agg') # disregard qtapp warning...
 import matplotlib.pyplot as plt
 
-import pypylon.pylon as pylon
-import pypylon.genicam as geni
-
 def draw_figure(num):
 	mpl.rcParams['toolbar'] = 'None' 
 
@@ -36,6 +33,10 @@ def DisplayFrames(cam_params, dispQueue,):
 	n_cam = cam_params['n_cam']
 	
 	if sys.platform == "win32" and cam_params['cameraMake'] == 'basler':
+
+		import pypylon.pylon as pylon
+		import pypylon.genicam as geni
+		
 		imageWindow = pylon.PylonImageWindow()
 		imageWindow.Create(c)
 		imageWindow.Show()
