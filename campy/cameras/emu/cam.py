@@ -58,7 +58,7 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 		try:
 			timeStart = time.perf_counter()
 			# Grab image from camera buffer if available
-			grabResult = camera.get_data(cnt).astype("uint8")
+			grabResult = camera.get_data(cnt)
 
 			# Append numpy array to writeQueue for writer to append to file
 			writeQueue.append(grabResult)
@@ -79,11 +79,15 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 				fps_count = int(round(cnt/grabtime))
 				print('Camera %i collected %i frames at %i fps.' % (n_cam,cnt,fps_count))
 
-			# Waits until frame time has been reached
+			# Waits until frame time has been reached to fix frame rate
 			while(time.perf_counter()-timeStart < 1/cam_params["frameRate"]):
 				pass
+
 		except Exception as e:
-			logging.error('Caught exception: {}'.format(e))
+			logging.error('Caught exception in grabFrames: {}'.format(e))
+			CloseCamera(cam_params, camera, grabdata)
+			writeQueue.append('STOP')
+			break
 
 def CloseCamera(cam_params, camera, grabdata):
 	n_cam = cam_params["n_cam"]
