@@ -1,0 +1,32 @@
+# Video parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 100
+recTimeInSec: 10
+
+# Camera parameters
+numCams: 3
+cameraSelection: [0,1,4] #[0,1,2]
+# cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
+cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_250fps_trigger_Bayer8.pfs"
+cameraNames: ["Camera1","Camera2","Camera3"]
+cameraMake: ["basler","basler","basler"]
+pixelFormatInput: "bayer_bggr8" #"rgb24"
+pixelFormatOutput: "rgb0"
+
+# Compression parameters
+ffmpegLogLevel: ["quiet","quiet","quiet"] # "quiet", "warning", "info"
+gpuID: 0                  # -1 = CPU
+gpuMake: "nvidia"         # "nvidia", "amd", "intel"                  
+codec: "h264"             # "h264", "h265", or user-defined video codec
+quality: "21"             # 0-55
+
+# Display parameters
+chunkLengthInSec: 30
+displayFrameRate: 10
+displayDownsample: 2
+
+# Other parameters
+ffmpegPath: [] #["/home/usr/Documents/ffmpeg/ffmpeg"]
+frameWidth: 1152
+frameHeight: 1024

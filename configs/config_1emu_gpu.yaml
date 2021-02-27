@@ -1,0 +1,29 @@
+# Recording parameters
+videoFolder: "./test"
+videoFilename: "emu0.mp4"
+frameRate: 100
+recTimeInSec: 10
+
+# Camera parameters
+cameraMake: "emu"
+numCams: 1
+cameraSelection: [0]
+cameraNames: ["Camera1"]
+
+# Compression parameters
+ffmpegLogLevel: "quiet"
+gpuID: 0
+pixelFormatInput: "rgb24" # 'bayer_bggr8' 'rgb24'
+pixelFormatOutput: "rgb0"
+codec: "h264"
+quality: "21"
+
+# Display parameters
+chunkLengthInSec: 30
+displayFrameRate: 10
+displayDownsample: 2
+
+# Other parameters
+ffmpegPath: [] #["/home/usr/Documents/ffmpeg/ffmpeg"]
+frameWidth: 1280
+frameHeight: 1024
