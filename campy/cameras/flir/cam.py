@@ -3,6 +3,7 @@
 """
 
 import PySpin
+from campy.cameras import unicam
 import os
 import time
 import logging
@@ -58,7 +59,7 @@ def ConfigureTrigger(camera):
 		if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
 			camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)
 		elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
-			camera.TriggerSource.SetValue(PySpin.TriggerSource_Line0)
+			camera.TriggerSource.SetValue(PySpin.TriggerSource_Line3)
 
 		# Turn trigger mode on
 		# Once the appropriate trigger source has been set, turn trigger mode
@@ -72,7 +73,7 @@ def ConfigureTrigger(camera):
 
 	return result
 
-def ConfigureCustomImageSettings(cam_params,nodemap):
+def ConfigureCustomImageSettings(cam_params, nodemap):
 	"""
 	Configures a number of settings on the camera including offsets  X and Y, width,
 	height, and pixel format. These settings must be applied before BeginAcquisition()
@@ -138,7 +139,7 @@ def PrintDeviceInfo(nodemap, cam_num):
 	:returns: True if successful, False otherwise.
 	:rtype: bool
 	"""
-	# n_cam = cam_params["n_cam"]
+
 	print('Printing device information for camera %d... \n' % cam_num)
 	try:
 		result = True
@@ -160,34 +161,37 @@ def PrintDeviceInfo(nodemap, cam_num):
 		return False
 	return result
 
-def OpenCamera(cam_params):
-	# Open and load features for all cameras
-	n_cam = cam_params["n_cam"]
-	cam_index = cam_params["cameraSelection"]
-	camera_name = cam_params["cameraName"]
+def LoadSystem(params):
 
-	# Retrieve singleton reference to system object
-	system = PySpin.System.GetInstance()
+	return PySpin.System.GetInstance()
 
-	# Retrieve list of cameras from the system
-	cam_list = system.GetCameras()
-	result = True
-	for i, camera in enumerate(cam_list):
-		if i == cam_index:
-			# Retrieve TL device nodemap
-			nodemap_tldevice = camera.GetTLDeviceNodeMap()
-			# Print device information
-			result &= PrintDeviceInfo(nodemap_tldevice, i)
+def GetDeviceList(system):
+
+	return system.GetCameras()
+
+def LoadDevice(cam_params, system, device_list):
+
+	return device_list.GetByIndex(cam_params["cameraSelection"])
+
+def GetSerialNumber(device):
+	node_device_serial_number = PySpin.CStringPtr(device.GetTLDeviceNodeMap().GetNode('DeviceSerialNumber'))
+	if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
+		device_serial_number = node_device_serial_number.GetValue()
+	else:
+		device_serial_number = []
+	return device_serial_number
+
+def OpenCamera(cam_params, camera):
+	# Retrieve TL device nodemap
+	nodemap_tldevice = camera.GetTLDeviceNodeMap()
+	# Print device information
+	PrintDeviceInfo(nodemap_tldevice, cam_params["cameraSelection"])
 
 	# Initialize camera object
-	camera = cam_list.GetByIndex(cam_index)
 	camera.Init()
-			
-	# Retrieve GenICam nodemap
-	nodemap = camera.GetNodeMap()
 
 	# Set acquisition mode to continuous
-	node_acquisition_mode = PySpin.CEnumerationPtr(nodemap.GetNode('AcquisitionMode'))
+	node_acquisition_mode = PySpin.CEnumerationPtr(camera.GetNodeMap().GetNode('AcquisitionMode'))
 	if not PySpin.IsAvailable(node_acquisition_mode) or not PySpin.IsWritable(node_acquisition_mode):
 		print('Unable to set acquisition mode to continuous (node retrieval; camera %d). Aborting... \n' % i)
 		return False
@@ -200,103 +204,72 @@ def OpenCamera(cam_params):
 	acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
 	node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
 
-	# Get device metadata from camera object
-	node_device_serial_number = PySpin.CStringPtr(camera.GetTLDeviceNodeMap().GetNode('DeviceSerialNumber'))
-	if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
-		device_serial_number = node_device_serial_number.GetValue()
-	else:
-		device_serial_number = []
-	cam_params['cameraSerialNo'] = device_serial_number
-
-	# cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
-	print("Opened", camera_name, "serial#", device_serial_number)
-
-	# Start grabbing frames
-	camera.BeginAcquisition()
-
 	# Configure trigger
 	trigConfig = ConfigureTrigger(camera)
 	cam_params["trigConfig"] = trigConfig
 
 	# Configure custom image settings
-	settingsConfig, frameWidth, frameHeight = ConfigureCustomImageSettings(cam_params,nodemap)
+	settingsConfig, frameWidth, frameHeight = ConfigureCustomImageSettings(cam_params,camera.GetNodeMap())
 	cam_params["settingsConfig"] = settingsConfig
 	cam_params["frameWidth"] = frameWidth
 	cam_params["frameHeight"] = frameHeight
 
-	print('Configured Image Settings')
-	print(trigConfig)
-	print(settingsConfig)
+	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
+	return cam_params, camera
 
-	return cam_params, camera, cam_list, system
-
-def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
-	n_cam = cam_params["n_cam"]
-
-	cnt = 0
-	timeout = 0
+def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
+	# Open the camera object
+	cam_params, camera = OpenCamera(cam_params, device)
 
 	# Create dictionary for appending frame number and timestamp information
-	grabdata = {}
-	grabdata['timeStamp'] = []
-	grabdata['frameNumber'] = []
+	grabdata = unicam.GrabData(cam_params)
 
-	frameRate = cam_params['frameRate']
-	recTimeInSec = cam_params['recTimeInSec']
-	chunkLengthInSec = cam_params["chunkLengthInSec"]
-	ds = cam_params["displayDownsample"]
-	displayFrameRate = cam_params["displayFrameRate"]
-
-	frameRatio = int(round(frameRate/displayFrameRate))
-	numImagesToGrab = recTimeInSec*frameRate
-	chunkLengthInFrames = int(round(chunkLengthInSec*frameRate))
-
-	print('Opening camera')
-	cam_params, camera, cam_list, system = OpenCamera(cam_params)
-	print('Opened Camera')
-
+	# Start grabbing frames
 	grabbing = False
 	if cam_params["trigConfig"] and cam_params["settingsConfig"]:
+		camera.BeginAcquisition()
+		print("{} ready to trigger.".format(cam_params["cameraName"]))
 		grabbing = True
-		print(cam_params["cameraName"], "ready to trigger.")
 
+	cnt = 0
 	while(grabbing):
-		if stopQueue or cnt >= numImagesToGrab:
-			CloseCamera(cam_params, system, cam_list, camera, grabdata)
+		if stopQueue or cnt >= grabdata["numImagesToGrab"]:
+			# CloseCamera(cam_params, system, cam_list, camera, grabdata)
+			CloseCamera(cam_params, camera, grabdata)
 			writeQueue.append('STOP')
 			break
 		try:
 			# Grab image from camera buffer if available
 			image_result = camera.GetNextImage()
 			if not image_result.IsIncomplete():
-				# img = np.asarray(image_result, dtype="uint8")
-				# image_converted = image_result.Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-				# img = image_converted.GetNDArray()
 				img = image_result.GetNDArray()
 
 				# Append numpy array to writeQueue for writer to append to file
 				writeQueue.append(img)
 
-				# Get timestamp of grabbed frame from camera
-				if cnt == 0:
-					timeFirstGrab = time.monotonic_ns()
-				grabtime = (time.monotonic_ns() - timeFirstGrab)/1e9
-				grabdata['timeStamp'].append(grabtime)
-
+				# Append timeStamp and frameNumber of grabbed frame to grabdata
 				cnt += 1
-				grabdata['frameNumber'].append(cnt) # first frame = 1
+				grabdata["frameNumber"].append(cnt) # first frame = 1
+				camera.TimestampLatch.Execute()
+				grabtime = camera.TimestampLatchValue.GetValue()/1e9
+				grabdata["timeStamp"].append(grabtime)
 
-				if cnt % frameRatio == 0:
-					dispQueue.append(img[::ds,::ds])
+				# Send image result to display queue for display
+				if cnt % grabdata["frameRatio"] == 0:
+					img = image_result.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR).GetNDArray()
+					dispQueue.append(img[::grabdata["ds"],::grabdata["ds"]])
 
-				# Release grab object
-				image_result.Release()
-
-				if cnt % chunkLengthInFrames == 0:
-					fps_count = int(round(cnt/grabtime))
-					print('Camera %i collected %i frames at %i fps.' % (n_cam,cnt,fps_count))
+				# Print number of frames collected after a user-defined chunk of time
+				if cnt % grabdata["chunkLengthInFrames"] == 0:
+					fps_count = int(round(cnt/grabtime - grabdata["timeStamp"][0]))
+					print('{} collected {} frames at {} fps.' \
+						.format(cam_params["cameraName"], cnt, fps_count))
 			else:
-				print('Image incomplete with image status %d ... \n' % image_result.GetImageStatus())
+				print('Image incomplete with image status {} ...'.format(image_result.GetImageStatus()))
+
+			# Release grab object
+			image_result.Release()
+
 		# Else wait for next frame available
 		except PySpin.SpinnakerException as ex:
 			print('Error: %s' % ex)
@@ -304,24 +277,19 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
 		except Exception as e:
 			logging.error('Caught exception: {}'.format(e))
 
-def CloseCamera(cam_params, system, cam_list, camera, grabdata):
-	n_cam = cam_params["n_cam"]
-	print('Closing camera {}... Please wait.'.format(n_cam+1))
+def CloseCamera(cam_params, camera, grabdata):
+	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
 	# Close camera after acquisition stops
 	while(True):
 		try:
 			try:
-				SaveMetadata(cam_params,grabdata)
-				time.sleep(1)
-				# Close cameras
+				unicam.SaveMetadata(cam_params,grabdata)
+				time.sleep(0.5)
+
+				# Close camera
 				camera.EndAcquisition()
 				camera.DeInit()
 				del camera
-				# Clear camera list before releasing system
-				cam_list.Clear()
-				# Release system instance
-				system.ReleaseInstance()
-				# camera.EndAcquisition()
 				break
 			except Exception as e:
 				logging.error('Caught exception: {}'.format(e))
@@ -329,39 +297,6 @@ def CloseCamera(cam_params, system, cam_list, camera, grabdata):
 		except KeyboardInterrupt:
 			break
 
-def SaveMetadata(cam_params, grabdata):
-	
-	n_cam = cam_params["n_cam"]
-
-	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
-
-	meta = cam_params
-	meta['timeStamp'] = grabdata['timeStamp']
-	meta['frameNumber'] = grabdata['frameNumber']
-
-	frame_count = grabdata['frameNumber'][-1]
-	time_count = grabdata['timeStamp'][-1]
-	fps_count = int(round(frame_count/time_count))
-	print('Camera {} saved {} frames at {} fps.'.format(n_cam+1, frame_count, fps_count))
-
-	try:
-		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
-		x = np.array([meta['frameNumber'], meta['timeStamp']])
-		np.save(npy_filename,x)
-	except:
-		pass
-
-	csv_filename = os.path.join(full_folder_name, 'metadata.csv')
-	meta = cam_params
-	meta['totalFrames'] = grabdata['frameNumber'][-1]
-	meta['totalTime'] = grabdata['timeStamp'][-1]
-	keys = meta.keys()
-	vals = meta.values()
-	
-	try:
-		with open(csv_filename, 'w', newline='') as f:
-			w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
-			for row in meta.items():
-				w.writerow(row)
-	except:
-		pass
+def CloseSystem(system, device_list):
+	device_list.Clear()
+	system.ReleaseInstance()
