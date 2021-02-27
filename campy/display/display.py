@@ -34,12 +34,12 @@ def DisplayFrames(cam_params, dispQueue,):
 	
 	if sys.platform == "win32" and cam_params['cameraMake'] == 'basler':
 
-		import pypylon.pylon as pylon
-		import pypylon.genicam as geni
+		# import pypylon.pylon as pylon
+		# import pypylon.genicam as geni
 		
-		imageWindow = pylon.PylonImageWindow()
-		imageWindow.Create(c)
-		imageWindow.Show()
+		# imageWindow = pylon.PylonImageWindow()
+		# imageWindow.Create(c)
+		# imageWindow.Show()
 		while(True):
 			try:
 				if dispQueue:
