@@ -25,11 +25,30 @@ import multiprocessing as mp
 from campy import CampyParams
 from campy.writer import campipe
 from campy.display import display
-import argparse
+from campy.cameras import unicam
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import ast
 import yaml
 import logging
 
+def CombineConfigAndClargs(clargs):
+	params = LoadConfig(clargs.config)
+	CheckConfig(params, clargs)
+	for key, value in clargs.__dict__.items():
+		if value is not None:
+			params[key] = value
+	return params
+
+def CheckConfig(params, clargs):
+	invalid_keys = []
+	for key in params.keys():
+		if key not in clargs.__dict__.keys():
+			invalid_keys.append(key)
+
+	if len(invalid_keys) > 0:
+		invalid_key_msg = [" %s," % key for key in invalid_keys]
+		msg = "Unrecognized keys in the configs: %s" % "".join(invalid_key_msg)
+		raise ValueError(msg)
 
 def LoadConfig(config_path):
 	try:
@@ -39,32 +58,21 @@ def LoadConfig(config_path):
 		logging.error('Caught exception: {}'.format(e))
 	return config
 
-def OptParams(params, cam_params, opt_params_dict):
-	# Optionally, user provides a single string or a list of strings, equal in size to numCams
-	# String is passed to all cameras. Else, each list item is passed to its respective camera
-	n_cam = cam_params["n_cam"]
-	opt_params_list = list(opt_params_dict)
-	for i in range(len(opt_params_list)):
-		key = opt_params_list[i]
-		if key in params:
-			if type(params[key]) is list:
-				if len(params[key]) == params["numCams"]:
-					cam_params[key] = params[key][n_cam]
-				else: print('{} list is not the same size as numCams.'.format(key))
-		else:
-			cam_params[key] = opt_params_dict[key]
-	return cam_params
+def LoadSystemsAndDevices(params):
+	systems = unicam.LoadSystems(params)
+	systems["deviceList"], params["serials"] = unicam.GetDeviceList(params,systems)
+	return params, systems
 
-def CreateCamParams(params, n_cam):
+def CreateCamParams(params, systems, n_cam):
 	# Insert camera-specific metadata from parameters into cam_params dictionary
 	cam_params = params
 	cam_params["n_cam"] = n_cam
-	cam_params["cameraName"] = params["cameraNames"][n_cam]
 	cam_params["baseFolder"] = os.getcwd()
+	cam_params["cameraName"] = params["cameraNames"][n_cam]
 
-	# Default configuration parameters dictionary. key
-	# Default value is used if variable is not present in config or overwritten by cameraSettings.
-	opt_params_dict = {"frameRate": 100,
+	# Default configuration parameters dictionary.
+	# Default value is used if variable is either not present in config or not overwritten by cameraSettings.
+	default_params = {"frameRate": 100,
 						"cameraSelection": n_cam,
 						"cameraSettings": "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs",
 						"cameraMake": "basler", 
@@ -81,49 +89,25 @@ def CreateCamParams(params, n_cam):
 						"displayFrameRate": 10,
 						"displayDownsample": 2,}
 
-	cam_params = OptParams(params, cam_params, opt_params_dict)
+	cam_params = OptParams(params, cam_params, default_params)
+	cam_params["device"] = systems["deviceList"][cam_params["cameraSelection"]]
+	cam_params["cameraSerialNo"] = params["serials"][cam_params["cameraSelection"]]
 	return cam_params
 
-def AcquireOneCamera(n_cam):
-	# Initializes metadata dictionary for this camera stream
-	# and inserts important configuration details
-
-	# Load camera parameters from config
-	cam_params = CreateCamParams(params, n_cam)
-
-	# Import the correct camera module for your camera
-	if cam_params["cameraMake"] == "basler":
-		from campy.cameras.basler import cam
-	elif cam_params["cameraMake"] == "flir":
-		from campy.cameras.flir import cam
-
-	# Initialize queues for video writer
-	writeQueue = deque()
-	stopQueue = deque([], 1)
-
-	# Start image window display ('consumer' thread)
-	if sys.platform == 'win32' and cam_params["cameraMake"] == "basler":
-		dispQueue = []
-	else:
-		dispQueue = deque([], 2)
-		threading.Thread(
-			target=display.DisplayFrames,
-			daemon=True,
-			args=(cam_params, dispQueue,),
-		).start()
-
-	# Start grabbing frames ('producer' thread)
-	threading.Thread(
-		target = cam.GrabFrames,
-		daemon=True,
-		args = (cam_params,
-				writeQueue,
-				dispQueue,
-				stopQueue,),
-		).start()
-
-	# Start video file writer (main 'consumer' thread)
-	campipe.WriteFrames(cam_params, writeQueue, stopQueue)
+def OptParams(params, cam_params, default_params):
+	# Optionally, user provides a single string or a list of strings, equal in size to numCams
+	# String is passed to all cameras. Else, each list item is passed to its respective camera
+	opt_params_list = list(default_params)
+	for i in range(len(opt_params_list)):
+		key = opt_params_list[i]
+		if key in params:
+			if type(params[key]) is list:
+				if len(params[key]) == params["numCams"]:
+					cam_params[key] = params[key][cam_params["n_cam"]]
+				else: print('{} list is not the same size as numCams.'.format(key))
+		else:
+			cam_params[key] = default_params[key]
+	return cam_params
 
 def ParseClargs(parser):
 	parser.add_argument(
@@ -142,7 +126,7 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--frameRate", 
 		dest="frameRate",
-		type=ast.literal_eval, 
+		type=int, 
 		help="Frame rate equal to trigger frequency.",
 	)
 	parser.add_argument(
@@ -151,12 +135,6 @@ def ParseClargs(parser):
 		type=int,
 		help="Recording time in seconds.",
 	)    
-	parser.add_argument(
-		"--emulate", 
-		dest="emulate", 
-		type=bool, 
-		help="Toggle for emulation mode (decode video file for debug/development).",
-	)
 	parser.add_argument(
 		"--numCams", 
 		dest="numCams", 
@@ -172,7 +150,7 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--cameraSelection",
 		dest="cameraSelection",
-		type=ast.literal_eval,
+		type=int,
 		help="Selects and orders camera indices to include in the recording. List length must be equal to numCams",
 	)
 	parser.add_argument(
@@ -264,26 +242,47 @@ def ParseClargs(parser):
 		type=int,
 		help="Downsampling factor for displaying images.",
 	)
-	return parser.parse_args()
+	clargs = parser.parse_args()
+	return clargs
 
-def CheckConfig(params, clargs):
-	invalid_keys = []
-	for key in params.keys():
-		if key not in clargs.__dict__.keys():
-			invalid_keys.append(key)
+def AcquireOneCamera(n_cam):
+	# Initializes metadata dictionary for this camera stream
+	# and inserts important configuration details
 
-	if len(invalid_keys) > 0:
-		invalid_key_msg = [" %s," % key for key in invalid_keys]
-		msg = "Unrecognized keys in the configs: %s" % "".join(invalid_key_msg)
-		raise ValueError(msg)
+	# Load camera parameters from config
+	cam_params = CreateCamParams(params, systems, n_cam)
 
-def CombineConfigAndClargs(clargs):
-	params = LoadConfig(clargs.config)
-	CheckConfig(params, clargs)
-	for param, value in clargs.__dict__.items():
-		if value is not None:
-			params[param] = value
-	return params
+	# Import the correct camera module for your camera
+	print('Importing {} cam for {}'.format(cam_params["cameraMake"], cam_params["cameraName"]))
+	cam = unicam.ImportCam(cam_params)
+
+	# Initialize queues for video writer and stop message
+	writeQueue = deque()
+	stopQueue = deque([], 1)
+
+	# Start image window display thread
+	if sys.platform == 'win32' and cam_params["cameraMake"] == "basler":
+		dispQueue = []
+	else:
+		dispQueue = deque([], 2)
+		threading.Thread(
+			target=display.DisplayFrames,
+			daemon=True,
+			args=(cam_params,dispQueue,),
+		).start()
+
+	# Load camera device
+	device = unicam.LoadDevice(cam_params,systems)
+
+	# Start grabbing frames ('producer' thread)
+	threading.Thread(
+		target=cam.GrabFrames,
+		daemon=True,
+		args=(cam_params,device,writeQueue,dispQueue,stopQueue,),
+		).start()
+
+	# Start video file writer (main 'consumer' thread)
+	campipe.WriteFrames(cam_params, writeQueue, stopQueue)
 
 def Main():
 	# Optionally, user can manually set path to find ffmpeg binary.
@@ -300,8 +299,15 @@ def Main():
 		p = pool.map_async(AcquireOneCamera, range(0,params['numCams']))
 		p.get()
 
-parser = argparse.ArgumentParser(
-		description="Campy CLI", formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-		)
-params = ParseClargs(parser)
-params = CombineConfigAndClargs(params)
+	unicam.CloseSystems(params,systems)
+
+parser = ArgumentParser(
+	description="Campy CLI", 
+	formatter_class=ArgumentDefaultsHelpFormatter,
+	)
+clargs = ParseClargs(parser)
+params = CombineConfigAndClargs(clargs)
+params, systems = LoadSystemsAndDevices(params)
+
+if __name__ == "__main__":
+    sys.exit(Main())
