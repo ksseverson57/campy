@@ -4,6 +4,7 @@
 
 import pypylon.pylon as pylon
 import pypylon.genicam as geni
+from campy.cameras import cameras
 import os
 import time
 import logging
@@ -12,91 +13,79 @@ import numpy as np
 from collections import deque
 import csv
 
-def OpenCamera(cam_params, bufferSize=500, validation=False):
-	n_cam = cam_params["n_cam"]
-	cam_index = cam_params["cameraSelection"]
-	camera_name = cam_params["cameraName"]
+def LoadSystem(params):
 
-	# Open and load features for all cameras
-	tlFactory = pylon.TlFactory.GetInstance()
-	devices = tlFactory.EnumerateDevices()
-	camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateDevice(devices[cam_index]))
-	serial = devices[cam_index].GetSerialNumber()
+	return pylon.TlFactory.GetInstance()
+
+def GetDeviceList(system):
+
+	return system.EnumerateDevices()
+
+def LoadDevice(cam_params, system, device_list):
+
+	return system.CreateDevice(cam_params["device"])
+
+def GetSerialNumber(device):
+
+	return device.GetSerialNumber()
+
+def OpenCamera(cam_params, device):
+	camera = pylon.InstantCamera(device)
 	camera.Close()
 	camera.StopGrabbing()
 	camera.Open()
-	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), validation)
+
+	# Load settings from Pylon features file
+	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), False) #Validation is false
 
 	# Get camera information and save to cam_params for metadata
-	cam_params['cameraSerialNo'] = serial
 	cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
-
-	# Set features manually or automatically, depending on configuration
 	cam_params['frameWidth'] = camera.Width.GetValue()
 	cam_params['frameHeight'] = camera.Height.GetValue()
 
 	# Start grabbing frames (OneByOne = first in, first out)
-	camera.MaxNumBuffer = bufferSize
-	print("Started", camera_name, "serial#", serial)
+	camera.MaxNumBuffer = 500 # bufferSize is 500 frames
+	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
 
 	return camera, cam_params
 
-def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
-	n_cam = cam_params["n_cam"]
-
-	cnt = 0
-	timeout = 0
+def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
+	# Open the camera object
+	camera, cam_params = OpenCamera(cam_params, device)
 
 	# Create dictionary for appending frame number and timestamp information
-	grabdata = {}
-	grabdata['timeStamp'] = []
-	grabdata['frameNumber'] = []
+	grabdata = unicam.GrabData(cam_params)
 
-	frameRate = cam_params['frameRate']
-	recTimeInSec = cam_params['recTimeInSec']
-	chunkLengthInSec = cam_params["chunkLengthInSec"]
-	ds = cam_params["displayDownsample"]
-	displayFrameRate = cam_params["displayFrameRate"]
-
-	numImagesToGrab = recTimeInSec*frameRate
-	chunkLengthInFrames = int(round(chunkLengthInSec*frameRate))
-
-	if displayFrameRate <= 0:
-		frameRatio = float('inf')
-	elif displayFrameRate > 0 and displayFrameRate <= frameRate:
-		frameRatio = int(round(frameRate/displayFrameRate))
-	else:
-		frameRatio = frameRate
-
+	# Use Basler's default display window. Works on Windows. Not supported on Linux
 	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
 		imageWindow = pylon.PylonImageWindow()
-		imageWindow.Create(n_cam)
+		imageWindow.Create(cam_params["n_cam"])
 		imageWindow.Show()
 
+	# Start grabbing frames from the camera using first-in-first-out buffer
 	camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
-	print(cam_params["cameraName"], "ready to trigger.")
+	print("{} ready to trigger.".format(cam_params["cameraName"]))
 
+	cnt = 0
 	while(camera.IsGrabbing()):
-		if stopQueue or cnt >= numImagesToGrab:
+		if stopQueue or cnt >= grabdata["numImagesToGrab"]:
 			CloseCamera(cam_params, camera, grabdata)
 			writeQueue.append('STOP')
 			break
 		try:
 			# Grab image from camera buffer if available
-			grabResult = camera.RetrieveResult(timeout, pylon.TimeoutHandling_ThrowException)
+			grabResult = camera.RetrieveResult(0, pylon.TimeoutHandling_ThrowException) # Timeout is 0
 
 			# Append numpy array to writeQueue for writer to append to file
 			writeQueue.append(grabResult.Array)
 
-			if cnt == 0:
-				timeFirstGrab = grabResult.TimeStamp
-			grabtime = (grabResult.TimeStamp - timeFirstGrab)/1e9
-			grabdata['timeStamp'].append(grabtime)
-
+			# Append timeStamp and frameNumber of grabbed frame to grabdata
 			cnt += 1
 			grabdata['frameNumber'].append(cnt) # first frame = 1
+			grabtime = grabResult.TimeStamp/1e9
+			grabdata['timeStamp'].append(grabtime)	
 
-			if cnt % frameRatio == 0:
+			if cnt % grabdata["frameRatio"] == 0:
 				if sys.platform == 'win32' and cam_params['cameraMake'] == 'basler':
 					try:
 						imageWindow.SetImage(grabResult)
@@ -104,12 +93,14 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 					except Exception as e:
 						logging.error('Caught exception: {}'.format(e))
 				else:
-					dispQueue.append(grabResult.Array[::ds,::ds])
+					dispQueue.append(grabResult.Array[::grabdata["ds"],::grabdata["ds"]])
+
+			if cnt % grabdata["chunkLengthInFrames"] == 0:
+				fps_count = int(round(cnt/grabtime))
+				print('{} collected {} frames at {} fps.'.format(cam_params["cameraName"], cnt, fps_count))
+
 			grabResult.Release()
 
-			if cnt % chunkLengthInFrames == 0:
-				fps_count = int(round(cnt/grabtime))
-				print('Camera %i collected %i frames at %i fps.' % (n_cam,cnt,fps_count))
 		# Else wait for next frame available
 		except geni.GenericException:
 			time.sleep(0.0001)
@@ -117,14 +108,12 @@ def GrabFrames(cam_params, camera, writeQueue, dispQueue, stopQueue):
 			logging.error('Caught exception: {}'.format(e))
 
 def CloseCamera(cam_params, camera, grabdata):
-	n_cam = cam_params["n_cam"]
-
-	print('Closing camera {}... Please wait.'.format(n_cam+1))
+	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
 	# Close Basler camera after acquisition stops
 	while(True):
 		try:
 			try:
-				SaveMetadata(cam_params,grabdata)
+				unicam.SaveMetadata(cam_params,grabdata)
 				time.sleep(1)
 				camera.Close()
 				camera.StopGrabbing()
@@ -134,34 +123,6 @@ def CloseCamera(cam_params, camera, grabdata):
 		except KeyboardInterrupt:
 			break
 
-def SaveMetadata(cam_params, grabdata):
-	n_cam = cam_params["n_cam"]
-	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
-
-	# Save frame numbers and timestamps in numpy array
-	frame_count = grabdata['frameNumber'][-1]
-	time_count = grabdata['timeStamp'][-1]
-	fps_count = int(round(frame_count/time_count))
-	print('Camera {} saved {} frames at {} fps.'.format(n_cam+1, frame_count, fps_count))
-	try:
-		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
-		x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
-		np.save(npy_filename,x)
-	except:
-		pass
-
-	# Save other recording metadata in csv file
-	meta = cam_params
-	meta['totalFrames'] = grabdata['frameNumber'][-1]
-	meta['totalTime'] = grabdata['timeStamp'][-1]
-	keys = meta.keys()
-	vals = meta.values()
-	
-	csv_filename = os.path.join(full_folder_name, 'metadata.csv')
-	try:
-		with open(csv_filename, 'w', newline='') as f:
-			w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
-			for row in meta.items():
-				w.writerow(row)
-	except:
-		pass
+def CloseSystem(system, device_list):
+	del system
+	del device_list
