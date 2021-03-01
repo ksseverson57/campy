@@ -4,17 +4,16 @@ Integrates machine vision camera APIs with ffmpeg real-time compression.
 Outputs one MP4 video file for each camera and metadata files
 
 'campy' is the main console. 
-User inputs are loaded from config yaml file using a command line interface (CLI) into the 'params' object.
-Params are assigned to each camera stream in the 'cam_params' object.
+User inputs are loaded from config yaml file using a command line interface (CLI) into the 'params' dictionary.
+Params are assigned to each camera stream in the 'cam_params' dictionary.
 	* Camera index is set by 'cameraSelection'.
-	* If param is a string, it is applied to all cameras.
+	* If param is string, it is applied to all cameras.
 	* If param is list of strings, it is assigned to each camera, ordered by camera index.
 Camera streams are acquired and encoded in parallel using multiprocessing.
 
 Usage: 
 campy-acquire ./configs/config.yaml
 """
-
 import numpy as np
 import os
 import time
@@ -60,7 +59,7 @@ def LoadConfig(config_path):
 
 def LoadSystemsAndDevices(params):
 	systems = unicam.LoadSystems(params)
-	systems["deviceList"], params["serials"] = unicam.GetDeviceList(params,systems)
+	systems = unicam.GetDeviceList(params,systems)
 	return params, systems
 
 def CreateCamParams(params, systems, n_cam):
@@ -90,8 +89,8 @@ def CreateCamParams(params, systems, n_cam):
 						"displayDownsample": 2,}
 
 	cam_params = OptParams(params, cam_params, default_params)
-	cam_params["device"] = systems["deviceList"][cam_params["cameraSelection"]]
-	cam_params["cameraSerialNo"] = params["serials"][cam_params["cameraSelection"]]
+	cam_params["device"] = systems[cam_params["cameraMake"]]["deviceList"][cam_params["cameraSelection"]]
+	cam_params["cameraSerialNo"] = systems[cam_params["cameraMake"]]["serials"][cam_params["cameraSelection"]]
 	return cam_params
 
 def OptParams(params, cam_params, default_params):
@@ -261,24 +260,21 @@ def AcquireOneCamera(n_cam):
 	stopQueue = deque([], 1)
 
 	# Start image window display thread
-	if sys.platform == 'win32' and cam_params["cameraMake"] == "basler":
-		dispQueue = []
-	else:
-		dispQueue = deque([], 2)
-		threading.Thread(
-			target=display.DisplayFrames,
-			daemon=True,
-			args=(cam_params,dispQueue,),
+	dispQueue = deque([], 2)
+	threading.Thread(
+		target = display.DisplayFrames,
+		daemon = True,
+		args = (cam_params, dispQueue,),
 		).start()
 
 	# Load camera device
-	device = unicam.LoadDevice(cam_params,systems)
+	device = unicam.LoadDevice(cam_params, systems)
 
 	# Start grabbing frames ('producer' thread)
 	threading.Thread(
-		target=cam.GrabFrames,
-		daemon=True,
-		args=(cam_params,device,writeQueue,dispQueue,stopQueue,),
+		target = unicam.GrabFrames,
+		daemon = True,
+		args = (cam_params, device, writeQueue, dispQueue, stopQueue,),
 		).start()
 
 	# Start video file writer (main 'consumer' thread)
@@ -308,6 +304,3 @@ parser = ArgumentParser(
 clargs = ParseClargs(parser)
 params = CombineConfigAndClargs(clargs)
 params, systems = LoadSystemsAndDevices(params)
-
-if __name__ == "__main__":
-    sys.exit(Main())
