@@ -42,48 +42,36 @@ def OpenCamera(cam_params, device):
 	print("Opened {} emulation.".format(cam_params["cameraName"]))
 	return camera, cam_params
 
-def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
-	# Open the camera object
-	camera, cam_params = OpenCamera(cam_params, device)
+def LoadSettings(cam_params, camera):
 
-	# Create dictionary for appending frame number and timestamp information
-	grabdata = unicam.GrabData(cam_params)
-	print(cam_params["cameraName"], "ready to emulate.")
+	return cam_params
 
-	cnt = 0
-	while(True):
-		if stopQueue or cnt >= grabdata["numImagesToGrab"]:
-			CloseCamera(cam_params, camera, grabdata)
-			writeQueue.append('STOP')
-			break
-		try:
-			# Grab image from camera buffer if available
-			grabResult = camera.get_data(cnt)
+def StartGrabbing(camera):
 
-			# Append numpy array to writeQueue for writer to append to file
-			writeQueue.append(grabResult)
+	return True
 
-			# Append timeStamp and frameNumber of grabbed frame to grabdata
-			cnt += 1
-			grabdata['frameNumber'].append(cnt) # first frame = 1
-			grabtime = time.perf_counter()
-			grabdata['timeStamp'].append(grabtime)
+def GrabFrame(camera, frameNumber):
 
-			if cnt % grabdata["frameRatio"] == 0:
-				dispQueue.append(grabResult[::grabdata["ds"],::grabdata["ds"],:])
-			if cnt % grabdata["chunkLengthInFrames"] == 0:
-				fps_count = int(round(cnt/grabtime))
-				print('{} collected {} frames at {} fps.'.format(cam_params["cameraName"], cnt, fps_count))
+	return camera.get_data(frameNumber)
 
-			# Waits until frame time has been reached to fix frame rate
-			while(time.perf_counter() - grabdata['timeStamp'][0] < 1/cam_params["frameRate"]):
-				pass
+def GetImageArray(grabResult, cam_params):
 
-		except Exception as e:
-			logging.error('Caught exception in grabFrames: {}'.format(e))
-			CloseCamera(cam_params, camera, grabdata)
-			writeQueue.append('STOP')
-			break
+	return grabResult
+
+def GetTimeStamp(grabResult, camera):
+
+	return time.perf_counter()
+
+def DisplayImage(cam_params, dispQueue, grabResult):
+	# Downsample image
+	img = grabResult[::cam_params["displayDownsample"],::cam_params["displayDownsample"],:]
+
+	# Send to display queue
+	dispQueue.append(img)
+
+def ReleaseFrame(grabResult):
+
+	del grabResult
 
 def CloseCamera(cam_params, camera, grabdata):
 	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
@@ -91,6 +79,7 @@ def CloseCamera(cam_params, camera, grabdata):
 	while(True):
 		try:
 			try:
+				del camera
 				unicam.SaveMetadata(cam_params,grabdata)
 				time.sleep(1)
 				break
@@ -100,5 +89,6 @@ def CloseCamera(cam_params, camera, grabdata):
 			break
 
 def CloseSystem(system, device_list):
+
 	del system
 	del device_list
