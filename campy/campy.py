@@ -247,7 +247,7 @@ def ParseClargs(parser):
 def AcquireOneCamera(n_cam):
 	# Initializes metadata dictionary for this camera stream
 	# and inserts important configuration details
-
+	
 	# Load camera parameters from config
 	cam_params = CreateCamParams(params, systems, n_cam)
 
@@ -280,6 +280,9 @@ def AcquireOneCamera(n_cam):
 	# Start video file writer (main 'consumer' thread)
 	campipe.WriteFrames(cam_params, writeQueue, stopQueue)
 
+	# Close the systems and devices properly
+	unicam.CloseSystems(params,systems)
+
 def Main():
 	# Optionally, user can manually set path to find ffmpeg binary.
 	if params["ffmpegPath"]:
@@ -294,8 +297,6 @@ def Main():
 		pool = ctx.Pool(processes=params['numCams'])
 		p = pool.map_async(AcquireOneCamera, range(0,params['numCams']))
 		p.get()
-
-	unicam.CloseSystems(params,systems)
 
 parser = ArgumentParser(
 	description="Campy CLI", 
