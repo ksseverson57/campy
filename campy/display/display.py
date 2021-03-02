@@ -1,16 +1,14 @@
 """
-
 """
 import sys
 import time
 import logging
 import numpy as np
-
 import matplotlib as mpl
 mpl.use('Qt5Agg') # disregard qtapp warning...
 import matplotlib.pyplot as plt
 
-def draw_figure(num):
+def DrawFigure(num):
 	mpl.rcParams['toolbar'] = 'None' 
 
 	figure = plt.figure(num)
@@ -28,37 +26,9 @@ def draw_figure(num):
 
 	return figure, imageWindow
 
-def DisplayFrames(cam_params, dispQueue,):
-
-	n_cam = cam_params['n_cam']
-	
-	if sys.platform == "win32" and cam_params['cameraMake'] == 'basler':
-
-		# import pypylon.pylon as pylon
-		# import pypylon.genicam as geni
-		
-		# imageWindow = pylon.PylonImageWindow()
-		# imageWindow.Create(c)
-		# imageWindow.Show()
-		while(True):
-			try:
-				if dispQueue:
-					grabResult = dispQueue.popleft()
-					try:
-						imageWindow.SetImage(grabResult)
-						imageWindow.Show()
-						grabResult.Release()
-					except Exception as e:
-						logging.error('Caught exception: {}'.format(e))
-					except:
-						grabResult.Release()
-				else:
-					time.sleep(0.01)
-			except KeyboardInterrupt:
-				break
-		imageWindow.Close()
-	else:
-		figure, imageWindow = draw_figure(n_cam+1)
+def DisplayFrames(cam_params, dispQueue):
+	if not (sys.platform=='win32' and cam_params['cameraMake'] == 'basler'):
+		figure, imageWindow = DrawFigure(cam_params["n_cam"]+1)
 		while(True):
 			try:
 				if dispQueue:
