@@ -1,10 +1,8 @@
 """
-
 """
-
 import pypylon.pylon as pylon
 import pypylon.genicam as geni
-from campy.cameras import cameras
+from campy.cameras import unicam
 import os
 import time
 import logging
@@ -35,77 +33,72 @@ def OpenCamera(cam_params, device):
 	camera.StopGrabbing()
 	camera.Open()
 
-	# Load settings from Pylon features file
-	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), False) #Validation is false
+	# Load camera settings
+	cam_params = LoadSettings(cam_params, camera)
 
-	# Get camera information and save to cam_params for metadata
-	cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
-	cam_params['frameWidth'] = camera.Width.GetValue()
-	cam_params['frameHeight'] = camera.Height.GetValue()
-
-	# Start grabbing frames (OneByOne = first in, first out)
-	camera.MaxNumBuffer = 500 # bufferSize is 500 frames
 	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
 
 	return camera, cam_params
 
-def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
-	# Open the camera object
-	camera, cam_params = OpenCamera(cam_params, device)
+def LoadSettings(cam_params, camera):
+	# Load settings from Pylon features file
+	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), False) #Validation is false
+	
+	# Get camera information and save to cam_params for metadata
+	cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
+	cam_params['frameWidth'] = camera.Width.GetValue()
+	cam_params['frameHeight'] = camera.Height.GetValue()
+	camera.MaxNumBuffer = 500 # bufferSize is 500 frames
 
-	# Create dictionary for appending frame number and timestamp information
-	grabdata = unicam.GrabData(cam_params)
+	return cam_params
 
-	# Use Basler's default display window. Works on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
-		imageWindow = pylon.PylonImageWindow()
-		imageWindow.Create(cam_params["n_cam"])
-		imageWindow.Show()
+def OpenImageWindow(cam_params):
+	imageWindow = pylon.PylonImageWindow()
+	imageWindow.Create(cam_params["n_cam"])
+	imageWindow.Show()
+	return imageWindow
 
-	# Start grabbing frames from the camera using first-in-first-out buffer
-	camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
-	print("{} ready to trigger.".format(cam_params["cameraName"]))
+def StartGrabbing(camera):
+	try:
+		camera.StartGrabbing(pylon.GrabStrategy_OneByOne)
+		return True
+	except:
+		return False
 
-	cnt = 0
-	while(camera.IsGrabbing()):
-		if stopQueue or cnt >= grabdata["numImagesToGrab"]:
-			CloseCamera(cam_params, camera, grabdata)
-			writeQueue.append('STOP')
-			break
-		try:
-			# Grab image from camera buffer if available
-			grabResult = camera.RetrieveResult(0, pylon.TimeoutHandling_ThrowException) # Timeout is 0
+def GrabFrame(camera, cnt):
 
-			# Append numpy array to writeQueue for writer to append to file
-			writeQueue.append(grabResult.Array)
+	return camera.RetrieveResult(0, pylon.TimeoutHandling_ThrowException)
 
-			# Append timeStamp and frameNumber of grabbed frame to grabdata
-			cnt += 1
-			grabdata['frameNumber'].append(cnt) # first frame = 1
-			grabtime = grabResult.TimeStamp/1e9
-			grabdata['timeStamp'].append(grabtime)	
+def GetImageArray(grabResult, cam_params):
 
-			if cnt % grabdata["frameRatio"] == 0:
-				if sys.platform == 'win32' and cam_params['cameraMake'] == 'basler':
-					try:
-						imageWindow.SetImage(grabResult)
-						imageWindow.Show()
-					except Exception as e:
-						logging.error('Caught exception: {}'.format(e))
-				else:
-					dispQueue.append(grabResult.Array[::grabdata["ds"],::grabdata["ds"]])
+	return grabResult.Array
 
-			if cnt % grabdata["chunkLengthInFrames"] == 0:
-				fps_count = int(round(cnt/grabtime))
-				print('{} collected {} frames at {} fps.'.format(cam_params["cameraName"], cnt, fps_count))
+def GetTimeStamp(grabResult, camera):
 
-			grabResult.Release()
+	return grabResult.TimeStamp*1e-9
 
-		# Else wait for next frame available
-		except geni.GenericException:
-			time.sleep(0.0001)
-		except Exception as e:
-			logging.error('Caught exception: {}'.format(e))
+def DisplayImage(cam_params, dispQueue, grabResult):
+	# Basler display window is more performant than generic matplot figure
+	if sys.platform == 'win32':
+		dispQueue.SetImage(grabResult)
+		dispQueue.Show()
+	else:
+		# If pixelformat is bayer, first convert result to RGB
+		if cam_params["pixelFormatInput"].find("bayer") != -1:
+			converter = pylon.ImageFormatConverter()
+			converter.OutputPixelFormat = pylon.PixelType_RGB8packed
+			img = converter.Convert(grabResult).GetArray()
+		else:
+			img = grabResult.GetArray()
+		# Downsample image
+		img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
+
+		# Send image to display window thru queue
+		dispQueue.append(img)
+
+def ReleaseFrame(grabResult):
+
+	grabResult.Release()
 
 def CloseCamera(cam_params, camera, grabdata):
 	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
@@ -113,10 +106,10 @@ def CloseCamera(cam_params, camera, grabdata):
 	while(True):
 		try:
 			try:
-				unicam.SaveMetadata(cam_params,grabdata)
-				time.sleep(1)
 				camera.Close()
 				camera.StopGrabbing()
+				unicam.SaveMetadata(cam_params,grabdata)
+				time.sleep(1)
 				break
 			except:
 				time.sleep(0.1)
