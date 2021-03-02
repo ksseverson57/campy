@@ -1,7 +1,5 @@
 """
-
 """
-
 import PySpin
 from campy.cameras import unicam
 import os
@@ -9,7 +7,6 @@ import time
 import logging
 import sys
 import numpy as np
-from collections import deque
 import csv
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -190,6 +187,13 @@ def OpenCamera(cam_params, camera):
 	# Initialize camera object
 	camera.Init()
 
+	# Load camera settings
+	cam_params = LoadSettings(cam_params, camera)
+
+	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
+	return camera, cam_params
+
+def LoadSettings(cam_params, camera):
 	# Set acquisition mode to continuous
 	node_acquisition_mode = PySpin.CEnumerationPtr(camera.GetNodeMap().GetNode('AcquisitionMode'))
 	if not PySpin.IsAvailable(node_acquisition_mode) or not PySpin.IsWritable(node_acquisition_mode):
@@ -214,68 +218,43 @@ def OpenCamera(cam_params, camera):
 	cam_params["frameWidth"] = frameWidth
 	cam_params["frameHeight"] = frameHeight
 
-	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
-	return cam_params, camera
+	return cam_params
 
-def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
-	# Open the camera object
-	cam_params, camera = OpenCamera(cam_params, device)
-
-	# Create dictionary for appending frame number and timestamp information
-	grabdata = unicam.GrabData(cam_params)
-
-	# Start grabbing frames
-	grabbing = False
-	if cam_params["trigConfig"] and cam_params["settingsConfig"]:
+def StartGrabbing(camera):
+	try:
 		camera.BeginAcquisition()
-		print("{} ready to trigger.".format(cam_params["cameraName"]))
-		grabbing = True
+		return True
+	except:
+		return False
 
-	cnt = 0
-	while(grabbing):
-		if stopQueue or cnt >= grabdata["numImagesToGrab"]:
-			# CloseCamera(cam_params, system, cam_list, camera, grabdata)
-			CloseCamera(cam_params, camera, grabdata)
-			writeQueue.append('STOP')
-			break
-		try:
-			# Grab image from camera buffer if available
-			image_result = camera.GetNextImage()
-			if not image_result.IsIncomplete():
-				img = image_result.GetNDArray()
+def GrabFrame(camera, frameNumber):
 
-				# Append numpy array to writeQueue for writer to append to file
-				writeQueue.append(img)
+	return camera.GetNextImage()
 
-				# Append timeStamp and frameNumber of grabbed frame to grabdata
-				cnt += 1
-				grabdata["frameNumber"].append(cnt) # first frame = 1
-				camera.TimestampLatch.Execute()
-				grabtime = camera.TimestampLatchValue.GetValue()/1e9
-				grabdata["timeStamp"].append(grabtime)
+def GetImageArray(grabResult, cam_params):
 
-				# Send image result to display queue for display
-				if cnt % grabdata["frameRatio"] == 0:
-					img = image_result.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR).GetNDArray()
-					dispQueue.append(img[::grabdata["ds"],::grabdata["ds"]])
+	return grabResult.GetNDArray()
 
-				# Print number of frames collected after a user-defined chunk of time
-				if cnt % grabdata["chunkLengthInFrames"] == 0:
-					fps_count = int(round(cnt/grabtime - grabdata["timeStamp"][0]))
-					print('{} collected {} frames at {} fps.' \
-						.format(cam_params["cameraName"], cnt, fps_count))
-			else:
-				print('Image incomplete with image status {} ...'.format(image_result.GetImageStatus()))
+def GetTimeStamp(grabResult, camera):
+	camera.TimestampLatch.Execute()
+	return camera.TimestampLatchValue.GetValue()*1e-9
 
-			# Release grab object
-			image_result.Release()
+def DisplayImage(cam_params, dispQueue, grabResult):
+	# Convert to RGB
+	img_converted = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
 
-		# Else wait for next frame available
-		except PySpin.SpinnakerException as ex:
-			print('Error: %s' % ex)
-			result = False
-		except Exception as e:
-			logging.error('Caught exception: {}'.format(e))
+	# Get Numpy Array
+	img = img_converted.GetNDArray()
+
+	# Downsample image
+	img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
+
+	# Send to display queue
+	dispQueue.append(img)
+
+def ReleaseFrame(grabResult):
+
+	grabResult.Release()
 
 def CloseCamera(cam_params, camera, grabdata):
 	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
@@ -283,13 +262,14 @@ def CloseCamera(cam_params, camera, grabdata):
 	while(True):
 		try:
 			try:
-				unicam.SaveMetadata(cam_params,grabdata)
-				time.sleep(0.5)
-
 				# Close camera
 				camera.EndAcquisition()
 				camera.DeInit()
 				del camera
+
+				# Save metadata
+				unicam.SaveMetadata(cam_params,grabdata)
+				time.sleep(0.5)
 				break
 			except Exception as e:
 				logging.error('Caught exception: {}'.format(e))
