@@ -1,7 +1,5 @@
 """
-
 """
-
 from imageio_ffmpeg import write_frames
 import os
 import time
@@ -114,7 +112,7 @@ def WriteFrames(cam_params, writeQueue, stopQueue):
 	writer = OpenWriter(cam_params)
 	message = ''
 
-	# Continue writing...
+	# Write until interrupted or stop message received
 	while(True):
 		try:
 			if writeQueue:
@@ -124,9 +122,9 @@ def WriteFrames(cam_params, writeQueue, stopQueue):
 				elif message=='STOP':
 					break
 			else:
-				time.sleep(0.0001)
+				time.sleep(0.001)
 		except KeyboardInterrupt:
-			stopQueue.append('STOP GRABBING')
+			stopQueue.append('STOP')
 
 	# Closing up...
 	print('Closing video writer for {}. Please wait...'.format(cam_params["cameraName"]))
