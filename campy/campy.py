@@ -75,6 +75,7 @@ def CreateCamParams(params, systems, n_cam):
 						"cameraSelection": n_cam,
 						"cameraSettings": "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs",
 						"cameraMake": "basler", 
+						"cameraTrigger": 'Line0', 
 						"pixelFormatInput": "rgb24", 
 						"pixelFormatOutput": "rgb0", 
 						"frameWidth": 1152,
@@ -159,6 +160,12 @@ def ParseClargs(parser):
 		help="Path to camera settings file.",
 	)
 	parser.add_argument(
+		"--cameraTrigger", 
+		dest="cameraTrigger",
+		type=ast.literal_eval, 
+		help="String indicating trigger input to camera (e.g. 'Line3').",
+	)
+	parser.add_argument(
 		"--frameHeight", 
 		dest="frameHeight",
 		type=int, 
@@ -202,7 +209,7 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--gpuID",
 		dest="gpuID",
-		type=ast.literal_eval,
+		type=int,
 		help="List of integers assigning the gpu index to stream each camera. Set to -1 to stream with CPU.",
 	)
 	parser.add_argument(
@@ -247,7 +254,7 @@ def ParseClargs(parser):
 def AcquireOneCamera(n_cam):
 	# Initializes metadata dictionary for this camera stream
 	# and inserts important configuration details
-	
+
 	# Load camera parameters from config
 	cam_params = CreateCamParams(params, systems, n_cam)
 
