@@ -17,7 +17,7 @@ class TriggerType:
 
 CHOSEN_TRIGGER = TriggerType.HARDWARE
 
-def ConfigureTrigger(camera):
+def ConfigureTrigger(cam_params, camera):
 	"""
 	This function configures the camera to use a trigger. First, trigger mode is
 	ensured to be off in order to select the trigger source. Trigger mode is
@@ -56,7 +56,7 @@ def ConfigureTrigger(camera):
 		if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
 			camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)
 		elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
-			camera.TriggerSource.SetValue(PySpin.TriggerSource_Line3)
+			eval('camera.TriggerSource.SetValue(PySpin.TriggerSource_%s)' % cam_params['cameraTrigger'])
 
 		# Turn trigger mode on
 		# Once the appropriate trigger source has been set, turn trigger mode
@@ -209,7 +209,7 @@ def LoadSettings(cam_params, camera):
 	node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
 
 	# Configure trigger
-	trigConfig = ConfigureTrigger(camera)
+	trigConfig = ConfigureTrigger(cam_params, camera)
 	cam_params["trigConfig"] = trigConfig
 
 	# Configure custom image settings
