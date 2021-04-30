@@ -457,9 +457,9 @@ def LoadSettings(cam_params, camera):
     cam_params["frameHeight"] = frameHeight
 
     # Configure exposure, gain, gamma, buffer
-    if configure_exposure(cam=camera, exposure_time=cam_params["ExposureTimeInUs"]):
-        if configure_gain(cam=camera, gain=cam_params["Gain"]):
-            if configure_buffer(cam=camera, bufferMode=cam_params["BufferMode"], bufferSize=cam_params["BufferSize"]):
+    if configure_exposure(cam=camera, exposure_time=cam_params["exposureTimeInUs"]):
+        if configure_gain(cam=camera, gain=cam_params["gain"]):
+            if configure_buffer(cam=camera, bufferMode=cam_params["bufferMode"], bufferSize=cam_params["bufferSize"]):
                 print('Exposure, gain and buffer configured successfully.')
             else:
                 raise Exception('Could not configure buffer!')
@@ -468,7 +468,7 @@ def LoadSettings(cam_params, camera):
     else:
         raise Exception('Could not configure exposure!')
 
-    if cam_params['DisableGamma']:
+    if cam_params['disableGamma']:
         if disable_gamma(cam=camera):
             print('Gamma disabled successfully.')
         else:
