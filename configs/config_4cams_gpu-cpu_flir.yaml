@@ -14,7 +14,7 @@ pixelFormatInput: "gray"  # 'bayer_bggr8', 'gray', 'rgb24', 'bgr0', 'yuv420p'
 pixelFormatOutput: "gray"
 
 # FLIR camera settings (options can be checked from Spinnaker SDK, not every option is implemented!)
-ExposureTimeInUs: 25000  # In microseconds
+ExposureTimeInUs: 24000  # In microseconds
 Gain: 0  # 0-40
 BufferMode: "OldestFirst"  # First in, first out
 BufferSize: 100  # Don't set this to more than 100. Even tho the camera max is much higher, it doesn't work (probably a bug of Spinnaker)
@@ -30,10 +30,9 @@ quality: "21"             # 0-55
 # Display parameters
 chunkLengthInSec: 30
 displayFrameRate: 10
-displayDownsample: 2
+displayDownsample: 4
 
 # Other parameters
 ffmpegPath: "C:/FFmpeg/bin/ffmpeg.exe"
-#emulate: False
 frameWidth: 2448
 frameHeight: 2048
