@@ -248,6 +248,36 @@ def ParseClargs(parser):
 		type=int,
 		help="Downsampling factor for displaying images.",
 	)
+	parser.add_argument(
+		"--exposureTimeInUS",
+		dest="exposureTimeInUS",
+		type=int,
+		help="Exposure time in microseconds (us). Only used for FLIR cameras",
+	)
+	parser.add_argument(
+		"--gain",
+		dest="gain",
+		type=int,
+		help="Gain in dB. Only used for FLIR cameras",
+	)
+	parser.add_argument(
+		"--bufferMode",
+		dest="bufferMode",
+		type=str,
+		help="Buffer handling mode. Only used for FLIR cameras",
+	)
+	parser.add_argument(
+		"--bufferSize",
+		dest="bufferSize",
+		type=int,
+		help="Buffer count size. Only used for FLIR cameras",
+	)
+	parser.add_argument(
+		"--disableGamma",
+		dest="disableGamma",
+		type=bool,
+		help="Gamma correction disabling. Only used for FLIR cameras",
+	)
 	clargs = parser.parse_args()
 	return clargs
 
