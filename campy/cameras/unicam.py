@@ -4,7 +4,7 @@ import numpy as np
 import csv
 import time
 from collections import deque
-	
+
 def ImportCam(cam_params):
 	if cam_params["cameraMake"] == "basler":
 		from campy.cameras.basler import cam
@@ -60,14 +60,12 @@ def GetMakeList(params):
 	return makes
 
 def GrabData(cam_params):
-	grabdata = {}
-	grabdata["timeStamp"] = []
-	grabdata["frameNumber"] = []
+	grabdata = {"timeStamp": [], "frameNumber": []}
 
 	# Calculate display rate
 	if cam_params["displayFrameRate"] <= 0:
 		grabdata["frameRatio"] = float('inf')
-	elif cam_params["displayFrameRate"] > 0 and cam_params["displayFrameRate"] <= cam_params['frameRate']:
+	elif 0 < cam_params["displayFrameRate"] <= cam_params['frameRate']:
 		grabdata["frameRatio"] = int(round(cam_params["frameRate"]/cam_params["displayFrameRate"]))
 	else:
 		grabdata["frameRatio"] = cam_params["frameRate"]
@@ -97,7 +95,7 @@ def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
 	print(cam_params["cameraName"], "ready to trigger.")
 
 	frameNumber = 0
-	while(grabbing):
+	while grabbing:
 		if stopQueue or frameNumber >= grabdata["numImagesToGrab"]:
 			cam.CloseCamera(cam_params, camera, grabdata)
 			writeQueue.append('STOP')
@@ -106,21 +104,19 @@ def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
 		try:
 			# Grab image from camera buffer if available
 			grabResult = cam.GrabFrame(camera, frameNumber)
-
 			# Append numpy array to writeQueue for writer to append to file
 			img = cam.GetImageArray(grabResult, cam_params)
 			writeQueue.append(img)
-
 			# Append timeStamp and frameNumber to grabdata
 			frameNumber += 1
 			grabdata['frameNumber'].append(frameNumber) # first frame = 1
 			timeStamp = cam.GetTimeStamp(grabResult, camera)
 			grabdata['timeStamp'].append(timeStamp)
-
-			# Display converted, downsampled image in the Window
-			if frameNumber % grabdata["frameRatio"] == 0:
-				img = cam.DisplayImage(cam_params, dispQueue, grabResult)
-
+			# ToDo: implement video display
+			# if cam_params['displayVideos']:
+				# Display converted, downsampled image in the Window
+				# if frameNumber % grabdata["frameRatio"] == 0:
+				# 	img = cam.DisplayImage(cam_params, dispQueue, grabResult)
 			if frameNumber % grabdata["chunkLengthInFrames"] == 0:
 				timeElapsed = timeStamp - grabdata["timeStamp"][0]
 				fps_count = int(round(frameNumber/(timeElapsed)))
@@ -128,26 +124,24 @@ def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
 					.format(cam_params["cameraName"], frameNumber, fps_count, int(round(timeElapsed))))
 
 			cam.ReleaseFrame(grabResult)
-
 		except KeyboardInterrupt:
 			pass
-		except:
+		except Exception as e:
+			print('Exception in unicam.py GrabFrames', e)
 			time.sleep(0.001)
 
 def SaveMetadata(cam_params, grabdata):
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
-
 	# Zero timeStamps
 	timeFirstGrab = grabdata["timeStamp"][0]
-	grabdata["timeStamp"] = [i - timeFirstGrab for i in grabdata["timeStamp"]]
-
+	grabdata["timeStamp"] = [i - timeFirstGrab for i in grabdata["timeStamp"].copy()]
 	# Get the frame and time counts to save into metadata
 	frame_count = grabdata['frameNumber'][-1]
 	time_count = grabdata['timeStamp'][-1]
 	fps_count = int(round(frame_count/time_count))
 	print('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
 
-	while(True):
+	while True:
 		meta = cam_params
 		try:
 			npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
@@ -161,7 +155,7 @@ def SaveMetadata(cam_params, grabdata):
 		meta['totalTime'] = grabdata['timeStamp'][-1]
 		keys = meta.keys()
 		vals = meta.values()
-		
+
 		try:
 			with open(csv_filename, 'w', newline='') as f:
 				w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
@@ -183,5 +177,7 @@ def CloseSystems(params,systems):
 		cam = ImportCam(cam_params)
 		try:
 			cam.CloseSystem(system, device_list)
-		except:
-			pass
+		except PySpin.SpinnakerException as ex:
+			print('SpinnakerException at unicam.py CloseSystems: %s' % ex)
+		except Exception as err:
+			print('Exception at unicam.py CloseSystems: %s' % err)
