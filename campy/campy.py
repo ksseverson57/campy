@@ -249,8 +249,8 @@ def ParseClargs(parser):
 		help="Downsampling factor for displaying images.",
 	)
 	parser.add_argument(
-		"--exposureTimeInUS",
-		dest="exposureTimeInUS",
+		"--exposureTimeInUs",
+		dest="exposureTimeInUs",
 		type=int,
 		help="Exposure time in microseconds (us). Only used for FLIR cameras",
 	)
@@ -298,11 +298,11 @@ def AcquireOneCamera(n_cam):
 
 	# Start image window display thread
 	dispQueue = deque([], 2)
-	threading.Thread(
-		target = display.DisplayFrames,
-		daemon = True,
-		args = (cam_params, dispQueue,),
-		).start()
+	# threading.Thread(
+	# 	target = display.DisplayFrames,
+	# 	daemon = True,
+	# 	args = (cam_params, dispQueue,),
+	# 	).start()
 
 	# Load camera device
 	device = unicam.LoadDevice(cam_params, systems)
