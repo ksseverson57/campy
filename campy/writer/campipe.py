@@ -85,7 +85,7 @@ def OpenWriter(cam_params):
 			try:
 				writer = write_frames(
 					full_file_name,
-					[cam_params["frameWidth"], cam_params["frameHeight"]], # size [W,H]
+					size=(cam_params["frameWidth"], cam_params["frameHeight"]), # size [W,H]
 					fps=cam_params["frameRate"],
 					quality=None,
 					codec=codec,
@@ -99,7 +99,7 @@ def OpenWriter(cam_params):
 				writer.send(None) # Initialize the generator
 				break
 			except Exception as e:
-				logging.error('Caught exception: {}'.format(e))
+				logging.error('Caught exception (campipe.py line 102): {}'.format(e))
 				time.sleep(0.1)
 
 		except KeyboardInterrupt:
