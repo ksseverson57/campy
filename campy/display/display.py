@@ -9,7 +9,7 @@ mpl.use('Qt5Agg') # disregard qtapp warning...
 import matplotlib.pyplot as plt
 
 def DrawFigure(num):
-	mpl.rcParams['toolbar'] = 'None' 
+	mpl.rcParams['toolbar'] = 'None'
 
 	figure = plt.figure(num)
 	ax = plt.axes([0,0,1,1], frameon=False)
@@ -18,7 +18,7 @@ def DrawFigure(num):
 	plt.autoscale(tight=True)
 	plt.ion()
 
-	imageWindow = ax.imshow(np.zeros((1,1,3), dtype='uint8'), 
+	imageWindow = ax.imshow(np.zeros((1,1,3), dtype='uint8'),
 		interpolation='none')
 
 	figure.canvas.draw()
@@ -33,6 +33,7 @@ def DisplayFrames(cam_params, dispQueue):
 			try:
 				if dispQueue:
 					img = dispQueue.popleft()
+					# ToDo: Find a way to plot in the main thread
 					try:
 						imageWindow.set_data(img)
 						figure.canvas.draw()
