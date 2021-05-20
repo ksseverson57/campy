@@ -1,38 +1,38 @@
 # Video parameters
-videoFolder: "./test"
-videoFilename: "O_0.mp4"
-frameRate: 30
+videoFolder: "./argus_calib_wand_34mm"
+videoFilename: "argus_calib_wand_34mm.mp4"
+frameRate: 21 # last test: 21 fps max!
 recTimeInSec: 60
 
 # Camera parameters
 numCams: 4
 cameraSelection: [0,1,2,3]  # selects which cameras are used and in which order
-cameraNames: ["Camera1","Camera2","Camera3", "Camera4"]
+cameraNames: ["Cam_A","Cam_B","Cam_C","Cam_D"]
 cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
 cameraMake: "flir"
 pixelFormatInput: "gray"  # 'bayer_bggr8', 'gray', 'rgb24', 'bgr0', 'yuv420p'
 pixelFormatOutput: "gray"
 
 # FLIR camera settings (options can be checked from Spinnaker SDK, not every option is implemented!)
-ExposureTimeInUs: 24000  # In microseconds
-Gain: 0  # 0-40
-BufferMode: "OldestFirst"  # First in, first out
-BufferSize: 100  # Don't set this to more than 100. Even tho the camera max is much higher, it doesn't work (probably a bug of Spinnaker)
-DisableGamma: True  # Gamma correction is not recommended for scientific purposes
+exposureTimeInUs: 10000  # In microseconds
+gain: 5  # 0-40
+bufferMode: "OldestFirst"  # First in, first out
+bufferSize: 10  # 10-100. Don't set this to more than 100. Even tho the camera max is much higher, it doesn't work (probably a bug of Spinnaker)
+disableGamma: True  # Gamma correction is not recommended for scientific purposes
 
 # Compression parameters
 ffmpegLogLevel: "quiet"   # "quiet", "warning", "info"
-gpuID: [0,0,0,-1]                  # -1 = CPU, GPU id for Nvidia multi-GPU, default is 0
+gpuID: [-1,0,0,0]         # -1 = CPU, GPU id for Nvidia multi-GPU, default is 0
 gpuMake: "nvidia"         # "nvidia", "amd", "intel"
 codec: "h264"             # "h264", "h265", or user-defined video codec
 quality: "21"             # 0-55
 
 # Display parameters
-chunkLengthInSec: 30
-displayFrameRate: 10
+chunkLengthInSec: 10
+displayFrameRate: 5
 displayDownsample: 4
 
 # Other parameters
 ffmpegPath: "C:/FFmpeg/bin/ffmpeg.exe"
-frameWidth: 2448
-frameHeight: 2048
+frameWidth: 2448  # max:2448, 75%:1836
+frameHeight: 2048  # max:2048, 75%:1536
