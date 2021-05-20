@@ -8,6 +8,7 @@ import logging
 import sys
 import numpy as np
 import csv
+from random import randint
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -35,21 +36,21 @@ CHOSEN_TRIGGER = TriggerType.HARDWARE
 
 def ConfigureTrigger(cam_params, camera):
     """
-	This function configures the camera to use a trigger. First, trigger mode is
-	ensured to be off in order to select the trigger source. Trigger mode is
-	then enabled, which has the camera capture only a single image upon the
-	execution of the chosen trigger.
-	 :param cam: Camera to configure trigger for.
-	 :type cam: CameraPtr
-	 :return: True if successful, False otherwise.
-	 :rtype: bool
-	"""
+    This function configures the camera to use a trigger. First, trigger mode is
+    ensured to be off in order to select the trigger source. Trigger mode is
+    then enabled, which has the camera capture only a single image upon the
+    execution of the chosen trigger.
+     :param cam: Camera to configure trigger for.
+     :type cam: CameraPtr
+     :return: True if successful, False otherwise.
+     :rtype: bool
+    """
 
     print('*** CONFIGURING TRIGGER ***\n')
     if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
         print('Software trigger chosen...')
     elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
-        print('Hardware trigger chose...')
+        print('Hardware trigger chosen...')
 
     try:
         result = True
@@ -61,6 +62,9 @@ def ConfigureTrigger(cam_params, camera):
             return False
         camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
         print('Trigger mode disabled...')
+
+        # Switch on the TriggerOverlap (important for high frame rates/exposures)
+        camera.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut)
 
         # Select trigger source
         # The trigger source must be set to hardware or software while trigger
@@ -303,23 +307,122 @@ def configure_buffer(cam, bufferMode='OldestFirst', bufferSize=100):
     return result
 
 
+def enableChunkDataPayloads(cam):
+    """
+    This function configures the camera to add chunk data to each image. It does
+    this by enabling each type of chunk data before enabling chunk data mode.
+    When chunk data is turned on, the data is made available in both the nodemap
+    and each image.
+
+    :param nodemap: Transport layer device nodemap.
+    :type nodemap: INodeMap
+    :return: True if successful, False otherwise
+    :rtype: bool
+    """
+    # ToDo: Only enable requested chunks (eg. Timestamp and FrameID) for faster execution and lower memory print
+    try:
+        result = True
+        print('\n*** CONFIGURING CHUNK DATA ***\n')
+
+        # Activate chunk mode
+        #
+        # *** NOTES ***
+        # Once enabled, chunk data will be available at the end of the payload
+        # of every image captured until it is disabled. Chunk data can also be
+        # retrieved from the nodemap.
+
+        nodemap = cam.GetNodeMap()
+        chunk_mode_active = PySpin.CBooleanPtr(nodemap.GetNode('ChunkModeActive'))
+
+        if PySpin.IsAvailable(chunk_mode_active) and PySpin.IsWritable(chunk_mode_active):
+            chunk_mode_active.SetValue(True)
+
+        print('Chunk mode activated...')
+
+        # Enable all types of chunk data
+        #
+        # *** NOTES ***
+        # Enabling chunk data requires working with nodes: "ChunkSelector"
+        # is an enumeration selector node and "ChunkEnable" is a boolean. It
+        # requires retrieving the selector node (which is of enumeration node
+        # type), selecting the entry of the chunk data to be enabled, retrieving
+        # the corresponding boolean, and setting it to be true.
+        #
+        # In this example, all chunk data is enabled, so these steps are
+        # performed in a loop. Once this is complete, chunk mode still needs to
+        # be activated.
+        chunk_selector = PySpin.CEnumerationPtr(nodemap.GetNode('ChunkSelector'))
+
+        if not PySpin.IsAvailable(chunk_selector) or not PySpin.IsReadable(chunk_selector):
+            print('Unable to retrieve chunk selector. Aborting...\n')
+            return False
+
+        # Retrieve entries
+        #
+        # *** NOTES ***
+        # PySpin handles mass entry retrieval in a different way than the C++
+        # API. Instead of taking in a NodeList_t reference, GetEntries() takes
+        # no parameters and gives us a list of INodes. Since we want these INodes
+        # to be of type CEnumEntryPtr, we can use a list comprehension to
+        # transform all of our collected INodes into CEnumEntryPtrs at once.
+        entries = [PySpin.CEnumEntryPtr(chunk_selector_entry) for chunk_selector_entry in chunk_selector.GetEntries()]
+        print('Enabling entries...')
+
+        # Iterate through our list and select each entry node to enable
+        for chunk_selector_entry in entries:
+            # Go to next node if problem occurs
+            if not PySpin.IsAvailable(chunk_selector_entry) or not PySpin.IsReadable(chunk_selector_entry):
+                continue
+
+            chunk_selector.SetIntValue(chunk_selector_entry.GetValue())
+
+            chunk_str = '\t {}:'.format(chunk_selector_entry.GetSymbolic())
+
+            # Retrieve corresponding boolean
+            chunk_enable = PySpin.CBooleanPtr(nodemap.GetNode('ChunkEnable'))
+
+            # Enable the boolean, thus enabling the corresponding chunk data
+            if not PySpin.IsAvailable(chunk_enable):
+                print('{} not available'.format(chunk_str))
+                result = False
+            elif chunk_enable.GetValue() is True:
+                print('{} enabled'.format(chunk_str))
+            elif PySpin.IsWritable(chunk_enable):
+                chunk_enable.SetValue(True)
+                print('{} enabled'.format(chunk_str))
+            else:
+                print('{} not writable'.format(chunk_str))
+                result = False
+
+    except PySpin.SpinnakerException as ex:
+        print('Error: %s' % ex)
+        result = False
+
+    return result
+
+
 def ConfigureCustomImageSettings(cam_params, nodemap):
     """
-	Configures a number of settings on the camera including offsets  X and Y, width,
-	height, and pixel format. These settings must be applied before BeginAcquisition()
-	is called; otherwise, they will be read only. Also, it is important to note that
-	settings are applied immediately. This means if you plan to reduce the width and
-	move the x offset accordingly, you need to apply such changes in the appropriate order.
-	:param nodemap: GenICam nodemap.
-	:type nodemap: INodeMap
-	:return: True if successful, False otherwise.
-	:rtype: bool
-	"""
+    Configures a number of settings on the camera including offsets  X and Y, width,
+    height, and pixel format. These settings must be applied before BeginAcquisition()
+    is called; otherwise, they will be read only. Also, it is important to note that
+    settings are applied immediately. This means if you plan to reduce the width and
+    move the x offset accordingly, you need to apply such changes in the appropriate order.
+    :param nodemap: GenICam nodemap.
+    :type nodemap: INodeMap
+    :return: True if successful, False otherwise.
+    :rtype: bool
+    """
     print('\n*** CONFIGURING CUSTOM IMAGE SETTINGS *** \n')
     try:
         result = True
         width_to_set = cam_params["frameWidth"]
         height_to_set = cam_params["frameHeight"]
+
+        # ToDo: Get this value from the camera
+        # ToDo: Reset the ROI back to default
+        max_w = 2448
+        max_h = 2048
 
         # Set maximum width
         #
@@ -335,6 +438,15 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
             width_to_set = cam_params["frameWidth"]
             node_width.SetValue(width_to_set)
             print('Width set to %i...' % node_width.GetValue())
+            offset_x = int((max_w-width_to_set)/2)
+            while offset_x % 4 != 0:
+                offset_x += 1
+            # ToDo: save the offset into metadata
+            node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode('OffsetX'))
+            if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
+                node_offset_x.SetValue(offset_x)
+            else:
+                print('OffsetX cannot be set!')
         else:
             print('Width not available...')
 
@@ -348,6 +460,14 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
             height_to_set = cam_params["frameHeight"]
             node_height.SetValue(height_to_set)
             print('Height set to %i...' % node_height.GetValue())
+            offset_y = int((max_h-height_to_set)/2)
+            while offset_y % 4 != 0:
+                offset_y += 1
+            node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode('OffsetY'))
+            if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
+                node_offset_y.SetValue(offset_y)
+            else:
+                print('OffsetY cannot be set!')
         else:
             print('Height not available...')
 
@@ -360,16 +480,16 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
 
 def PrintDeviceInfo(nodemap, cam_num):
     """
-	This function prints the device information of the camera from the transport
-	layer; please see NodeMapInfo example for more in-depth comments on printing
-	device information from the nodemap.
-	:param nodemap: Transport layer device nodemap.
-	:param cam_num: Camera number.
-	:type nodemap: INodeMap
-	:type cam_num: int
-	:returns: True if successful, False otherwise.
-	:rtype: bool
-	"""
+    This function prints the device information of the camera from the transport
+    layer; please see NodeMapInfo example for more in-depth comments on printing
+    device information from the nodemap.
+    :param nodemap: Transport layer device nodemap.
+    :param cam_num: Camera number.
+    :type nodemap: INodeMap
+    :type cam_num: int
+    :returns: True if successful, False otherwise.
+    :rtype: bool
+    """
 
     print('Printing device information for camera %d... \n' % cam_num)
     try:
@@ -441,7 +561,7 @@ def LoadSettings(cam_params, camera):
     if not PySpin.IsAvailable(node_acquisition_mode_continuous) or not PySpin.IsReadable(
             node_acquisition_mode_continuous):
         print('Unable to set acquisition mode to continuous (entry \'continuous\' retrieval %d). \
-		Aborting... \n')
+        Aborting... \n')
         return False
     acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
     node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
@@ -456,11 +576,15 @@ def LoadSettings(cam_params, camera):
     cam_params["frameWidth"] = frameWidth
     cam_params["frameHeight"] = frameHeight
 
-    # Configure exposure, gain, gamma, buffer
+    # Configure exposure, gain, gamma, buffer and chunk data mode for metadata (eg. timestamp and frame no information)
     if configure_exposure(cam=camera, exposure_time=cam_params["exposureTimeInUs"]):
         if configure_gain(cam=camera, gain=cam_params["gain"]):
             if configure_buffer(cam=camera, bufferMode=cam_params["bufferMode"], bufferSize=cam_params["bufferSize"]):
                 print('Exposure, gain and buffer configured successfully.')
+                if enableChunkDataPayloads(cam=camera):
+                    print('Chunk data enabled')
+                else:
+                    raise Exception('Could not enable chunk data!')
             else:
                 raise Exception('Could not configure buffer!')
         else:
@@ -481,7 +605,11 @@ def StartGrabbing(camera):
     try:
         camera.BeginAcquisition()
         return True
-    except:
+    except PySpin.SpinnakerException as ex:
+        print('Error: %s' % ex)
+        return False
+    except Exception as err:
+        print('Exception in cam.py function StartGrabbing(camera): ', err)
         return False
 
 
@@ -501,11 +629,12 @@ def GetImageArray(grabResult, cam_params):
 
 
 def GetTimeStamp(grabResult, camera):
-    return grabResult.GetChunkData().GetTimestamp() * 1e-9
+    chunk_data = grabResult.GetChunkData()
+    ts_img = chunk_data.GetTimestamp()
+    return ts_img * 1e-9
 
 
 def DisplayImage(cam_params, dispQueue, grabResult):
-
     if cam_params['pixelFormatInput'] != 'gray':
         # Convert to RGB
         img_converted = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
@@ -541,13 +670,21 @@ def CloseCamera(cam_params, camera, grabdata):
                 unicam.SaveMetadata(cam_params, grabdata)
                 time.sleep(0.5)
                 break
+            except PySpin.SpinnakerException as ex:
+                print('Error: %s' % ex)
             except Exception as e:
-                logging.error('Caught exception: {}'.format(e))
+                logging.error('Caught exception at cam.py CloseCamera: {}'.format(e))
                 break
         except KeyboardInterrupt:
             break
 
 
 def CloseSystem(system, device_list):
-    device_list.Clear()
-    system.ReleaseInstance()
+    try:
+        device_list.Clear()
+        system.ReleaseInstance()
+    except PySpin.SpinnakerException as ex:
+        print('SpinnakerException at cam.py CloseSystem: %s' % ex)
+        print('passing from', __name__)
+    except Exception as err:
+        print('Exception at cam.py CloseSystem: %s' % err)
