@@ -416,8 +416,23 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
     print('\n*** CONFIGURING CUSTOM IMAGE SETTINGS *** \n')
     try:
         result = True
+
         width_to_set = cam_params["frameWidth"]
+        if width_to_set % 16 != 0:
+            print("width_to_set = {} is not divisible by 16, this may create problems with ffmpeg. width_to_set will "
+                  "be increased to the nearest value that is divisible by 16".format(width_to_set))
+            while width_to_set % 16 != 0:
+                width_to_set += 1
+            print("width_to_set is set to width_to_set = {}".format(width_to_set))
+            cam_params["frameWidth"] = width_to_set
         height_to_set = cam_params["frameHeight"]
+        if height_to_set % 16 != 0:
+            print("height_to_set = {} is not divisible by 16, this may create problems with ffmpeg. height_to_set will "
+                  "be increased to the nearest value that is divisible by 16".format(height_to_set))
+            while height_to_set % 16 != 0:
+                height_to_set += 1
+            print("height_to_set is set to height_to_set = {}".format(height_to_set))
+            cam_params["frameHeight"] = height_to_set
 
         # ToDo: Get this value from the camera
         # ToDo: Reset the ROI back to default
@@ -439,9 +454,13 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
             node_width.SetValue(width_to_set)
             print('Width set to %i...' % node_width.GetValue())
             offset_x = int((max_w-width_to_set)/2)
-            while offset_x % 4 != 0:
-                offset_x += 1
-            # ToDo: save the offset into metadata
+            if offset_x % 4 != 0:
+                print("offset_x = {} is not divisible by 4, this may create problems with the camera. offset_x will be "
+                      "increased to the nearest value that is divisible by 4".format(offset_x))
+                while offset_x % 4 != 0:
+                    offset_x += 1
+                print("offset_x is set to offset_x = {}".format(offset_x))
+            cam_params["offset_x"] = offset_x
             node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode('OffsetX'))
             if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
                 node_offset_x.SetValue(offset_x)
@@ -461,8 +480,13 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
             node_height.SetValue(height_to_set)
             print('Height set to %i...' % node_height.GetValue())
             offset_y = int((max_h-height_to_set)/2)
-            while offset_y % 4 != 0:
-                offset_y += 1
+            if offset_y % 4 != 0:
+                print("offset_y = {} is not divisible by 4, this may create problems with the camera. offset_y will be "
+                      "increased to the nearest value that is divisible by 4".format(offset_y))
+                while offset_y % 4 != 0:
+                    offset_y += 1
+                print("offset_y is set to offset_y = {}".format(offset_y))
+            cam_params["offset_y"] = offset_y
             node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode('OffsetY'))
             if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
                 node_offset_y.SetValue(offset_y)
@@ -511,7 +535,6 @@ def PrintDeviceInfo(nodemap, cam_num):
     except PySpin.SpinnakerException as ex:
         print('Error: %s' % ex)
         return False
-    return result
 
 
 def LoadSystem(params):
@@ -613,14 +636,13 @@ def StartGrabbing(camera):
         return False
 
 
-def GrabFrame(camera, frameNumber):
-    image_result = camera.GetNextImage()
+def GrabFrame(camera, frameNumber, grabTimeOutInMilliseconds):
+    image_result = camera.GetNextImage(grabTimeOutInMilliseconds)
     #  Ensure image completion
     if image_result.IsIncomplete():
         image_status = image_result.GetImageStatus()
         print('Image incomplete with image status %d ...' % image_status)
         raise ImageNotCompleteException('Image not complete', image_status)
-        return False
     return image_result
 
 
@@ -628,10 +650,16 @@ def GetImageArray(grabResult, cam_params):
     return grabResult.GetNDArray()
 
 
-def GetTimeStamp(grabResult, camera):
-    chunk_data = grabResult.GetChunkData()
-    ts_img = chunk_data.GetTimestamp()
-    return ts_img * 1e-9
+def GetChunkData(grabResult):
+    return grabResult.GetChunkData()
+
+
+def GetTimeStamp(chunkData):
+    return chunkData.GetTimestamp() * 1e-9
+
+
+def GetFrameNo(chunkData):
+    return chunkData.GetFrameID()
 
 
 def DisplayImage(cam_params, dispQueue, grabResult):
@@ -668,7 +696,7 @@ def CloseCamera(cam_params, camera, grabdata):
 
                 # Save metadata
                 unicam.SaveMetadata(cam_params, grabdata)
-                time.sleep(0.5)
+                time.sleep(2.5)
                 break
             except PySpin.SpinnakerException as ex:
                 print('Error: %s' % ex)
