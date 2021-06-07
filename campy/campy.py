@@ -313,8 +313,8 @@ def AcquireOneCamera(n_cam):
     stopQueue = deque([], 1)
 
     # Start image window display thread
+    dispQueue = deque([], 2)
     if cam_params["cameraMake"] != 'flir':
-        dispQueue = deque([], 2)
         threading.Thread(
             target=display.DisplayFrames,
             daemon=True,

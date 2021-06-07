@@ -658,7 +658,7 @@ def GetTimeStamp(chunkData):
     return chunkData.GetTimestamp() * 1e-9
 
 
-def GetFrameNo(chunkData):
+def GetFrameID(chunkData):
     return chunkData.GetFrameID()
 
 

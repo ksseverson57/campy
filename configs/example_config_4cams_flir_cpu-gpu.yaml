@@ -29,7 +29,7 @@ codec: "h264"             # "h264", "h265", or user-defined video codec
 quality: "21"             # 0-55
 
 # Display parameters
-chunkLengthInSec: 10
+chunkLengthInSec: 15
 displayFrameRate: 5
 displayDownsample: 4
 
