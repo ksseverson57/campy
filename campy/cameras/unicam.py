@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import pandas as pd
 import csv
 import time
 from collections import deque
@@ -87,30 +88,43 @@ def GrabFrames(cam_params, device, writeQueue, dispQueue, stopQueue):
 	grabdata = GrabData(cam_params)
 
 	# Use Basler's default display window on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
+	if sys.platform == 'win32' and cam_params['cameraMake'] == 'basler':
 		dispQueue = cam.OpenImageWindow(cam_params)
 
 	# Start grabbing frames from the camera
 	grabbing = cam.StartGrabbing(camera)
+	time.sleep(1)
 	print(cam_params["cameraName"], "ready to trigger.")
+	if cam_params["cameraMake"] == "flir":
+		grabTimeOutInMilliseconds = cam_params["grabTimeOutInMilliseconds"]
+		print("You have {} seconds to start the recording!".format(grabTimeOutInMilliseconds / 1000))
 
-	frameNumber = 0
 	while grabbing:
-		if stopQueue or frameNumber >= grabdata["numImagesToGrab"]:
-			cam.CloseCamera(cam_params, camera, grabdata)
+		if stopQueue:
 			writeQueue.append('STOP')
 			grabbing = False
+			cam.CloseCamera(cam_params, camera, grabdata)
 			break
 		try:
 			# Grab image from camera buffer if available
 			grabResult = cam.GrabFrame(camera, frameNumber)
+		except Exception as err:
+			print('No frames received for {} seconds!'.format(grabTimeOutInMilliseconds), err)
+			writeQueue.append('STOP')
+			grabbing = False
+			cam.CloseCamera(cam_params, camera, grabdata)
+			break
+
+		try:
 			# Append numpy array to writeQueue for writer to append to file
 			img = cam.GetImageArray(grabResult, cam_params)
 			writeQueue.append(img)
+			# Get ImageChunkData and extract TimeStamp and FrameID
+			chunkData = cam.GetChunkData()
+			timeStamp = cam.GetTimeStamp(chunkData)
+			frameNumber = cam.GetFrameID(chunkData)
 			# Append timeStamp and frameNumber to grabdata
-			frameNumber += 1
-			grabdata['frameNumber'].append(frameNumber) # first frame = 1
-			timeStamp = cam.GetTimeStamp(grabResult, camera)
+			grabdata['frameNumber'].append(frameNumber)
 			grabdata['timeStamp'].append(timeStamp)
 			# ToDo: implement video display
 			# if cam_params['displayVideos']:
@@ -134,24 +148,31 @@ def SaveMetadata(cam_params, grabdata):
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
 	# Zero timeStamps
 	timeFirstGrab = grabdata["timeStamp"][0]
+	# ToDo: can't remember?
+	grabdata["cameraTime"] = grabdata["timeStamp"].copy()
 	grabdata["timeStamp"] = [i - timeFirstGrab for i in grabdata["timeStamp"].copy()]
 	# Get the frame and time counts to save into metadata
-	frame_count = grabdata['frameNumber'][-1]
+	frame_count = len(grabdata['frameNumber'])
 	time_count = grabdata['timeStamp'][-1]
-	fps_count = int(round(frame_count/time_count))
+	fps_count = frame_count/time_count
 	print('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
 
 	while True:
 		meta = cam_params
 		try:
 			npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
-			x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
-			np.save(npy_filename,x)
+			pd_filename = npy_filename[:-3] + '.csv'
+			x = np.array([grabdata['frameNumber'], grabdata["cameraTime"], grabdata['timeStamp']])
+			df = pd.DataFrame(data=x.T, columns=['frameNumber', 'cameraTime', 'timeStamp'])
+			df = df.convert_dtypes({'frameNumber':'int'})
+			df.to_csv(pd_filename)
+			np.save(npy_filename, x)
+
 		except KeyboardInterrupt:
 			break
 
 		csv_filename = os.path.join(full_folder_name, 'metadata.csv')
-		meta['totalFrames'] = grabdata['frameNumber'][-1]
+		meta['totalFrames'] = len(grabdata['frameNumber'])
 		meta['totalTime'] = grabdata['timeStamp'][-1]
 		keys = meta.keys()
 		vals = meta.values()
@@ -167,7 +188,7 @@ def SaveMetadata(cam_params, grabdata):
 		print('Saved metadata.csv for {}'.format(cam_params['cameraName']))
 		break
 
-def CloseSystems(params,systems):
+def CloseSystems(params, systems):
 	makes = GetMakeList(params)
 	cam_params = {}
 	for m in range(len(makes)):
