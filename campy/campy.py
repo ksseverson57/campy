@@ -17,6 +17,7 @@ campy-acquire ./configs/config.yaml
 import numpy as np
 import os
 import time
+import datetime
 import sys
 import threading, queue
 from collections import deque
@@ -29,6 +30,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import ast
 import yaml
 import logging
+from shutil import move
 
 
 def CombineConfigAndClargs(clargs):
@@ -336,6 +338,17 @@ def AcquireOneCamera(n_cam):
 
     # Close the systems and devices properly
     unicam.CloseSystems(params, systems)
+
+    # Wrap-up the recording
+    folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
+    parent = os.path.split(folder_name)[0]
+    timestamp = f"{datetime.datetime.now():%Y-%m-%d-%H-%M}"
+
+    for file in os.listdir(folder_name):
+        file_abs_path = os.path.join(folder_name, file)
+        new_filename = os.path.join(parent, cam_params["cameraName"] + '_' + timestamp + '_' + file)
+        move(file_abs_path, new_filename)
+    os.rmdir(folder_name)
 
 
 def Main():
