@@ -54,7 +54,7 @@ campy-acquire --help
 campy-acquire ./configs/config.yaml
 ```
 - Press Ctrl^C to end recording before allotted recording time.
-- Two files, "frametimes.npy" and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
+- Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
 ## Authors
 Written by Kyle Severson, Diego Aldarondo, and Iris Odstrcil (2019-2021).
