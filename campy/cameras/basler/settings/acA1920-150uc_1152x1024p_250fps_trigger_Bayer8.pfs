@@ -2,7 +2,7 @@
 # GenApi persistence file (version 3.1.0)
 # Device = Basler::UsbCameraParams -- Basler USB3Vision camera interface -- Device version = 1.0.0 -- Product GUID = 5a809e15-f447-480f-a21f-0fb7256b8400 -- Product version GUID = E93A8010-AA2E-4113-AFF3-8FB9038F267B
 ExposureAuto	Off
-BalanceWhiteAuto	Continuous
+BalanceWhiteAuto	Once
 GainAuto	Off
 Width	1152
 Height	1024
@@ -94,7 +94,7 @@ ColorAdjustmentSaturation	1.00000
 ColorAdjustmentSelector	Yellow
 ColorAdjustmentSaturation	0.96875
 ColorAdjustmentSelector	Green
-ColorAdjustmentSaturation	1.07813
+ColorAdjustmentSaturation	1.07812
 ColorAdjustmentSelector	Cyan
 ColorAdjustmentSaturation	1.05469
 ColorAdjustmentSelector	Blue
