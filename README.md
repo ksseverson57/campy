@@ -16,7 +16,8 @@ conda activate campy
 ```
 - Optionally, manually install dependencies:
 ```
-conda install numpy imageio imageio-ffmpeg scikit-image pyyaml
+conda install numpy imageio scikit-image pyyaml
+conda install -c conda-forge imageio-ffmpeg
 ```
 - To install Basler camera software:
 - Install Basler Pylon 6 with Developer options
