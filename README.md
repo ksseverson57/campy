@@ -21,19 +21,24 @@ conda install imageio-ffmpeg -c conda-forge
 ```
 - If using Basler cameras, install Pylon software:
   - Install Basler Pylon with Developer options
-  - Install pypylon (Basler's python wrappers for their pylon camera software suite):
-    Download a binary wheel from the [releases](https://github.com/Basler/pypylon/releases) page.
-    E.g. for Python 3.7 on Windows amd64 system, download "pypylon-1.6.0rc1-cp37-cp37m-win_amd64.whl"
-    E.g. for Python 3.7 on Linux x86 system, download "pypylon-1.6.0rc1-cp37-cp37m-linux_x86_64.whl"
+  - Install pypylon:
+  ```
+  pip install pypylon
+  ```
+  - Alternatively, manually install pypylon (Basler's python wrappers for their pylon camera software suite):
+  Download binary wheel from the [releases](https://github.com/Basler/pypylon/releases) page.
+  ```
+  pip3 install <wheel>
+  ```
 
 - If using FLIR cameras:
   - Download and install Spinnaker SDK and SpinView software from FLIR's website: 
     https://www.flir.com/support-center/iis/machine-vision/downloads/spinnaker-sdk-and-firmware-download/
-  - Install the appropriate binary wheel for PySpin (included in the Spinnaker download)
+  - Manually install binary wheel for PySpin (included in the Spinnaker download)
     E.g. for Python 3.7 on Windows amd64 system, install "spinnaker_python-2.3.0.77-cp37-cp37m-win_amd64.whl"
-```
-pip3 install <wheel>
-```
+  ```
+  pip3 install <wheel>
+  ```
 - Clone or download campy to local folder
 - Install campy and other dependencies by navigating to campy folder:
 ```
