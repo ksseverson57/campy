@@ -119,9 +119,9 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
 
 			if frameNumber % grabdata["chunkLengthInFrames"] == 0:
 				timeElapsed = timeStamp - grabdata["timeStamp"][0]
-				fps_count = int(round(frameNumber/(timeElapsed)))
+				fps_count = round(frameNumber / (timeElapsed), 1)
 				print('{} collected {} frames at {} fps for {} sec.'\
-					.format(cam_params["cameraName"], frameNumber, fps_count, int(round(timeElapsed))))
+					.format(cam_params["cameraName"], frameNumber, fps_count, round(timeElapsed),1))
 
 			cam.ReleaseFrame(grabResult)
 
