@@ -341,7 +341,7 @@ def Main():
 			ser = serial.Serial(port=params["serialPort"], baudrate=115200, timeout=0.1)
 			print("Starting arduino loop", flush=True)
 			time.sleep(2)
-			ser.write(str(params["frameRate"]).encode('utf-8'))
+			ser.write(str(params["frameRate"]).encode()) #'utf-8'
 			print("Arduino is ready to trigger!", flush=True)
 		except Exception as e:
 			logging.error('Caught exception: {}'.format(e))
