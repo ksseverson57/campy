@@ -79,7 +79,7 @@ def GrabData(cam_params):
 
 	return grabdata
 
-def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
+def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue):
 	# Import the cam module
 	cam = ImportCam(cam_params)
 
@@ -125,14 +125,10 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
 
 			cam.ReleaseFrame(grabResult)
 
-			if stopQueue or frameNumber >= grabdata["numImagesToGrab"]:
+			if stopReadQueue or frameNumber >= grabdata["numImagesToGrab"]:
 				grabbing = False
-				break
 
 		except Exception:
-			if stopQueue or frameNumber >= grabdata["numImagesToGrab"]:
-				grabbing = False
-				break
 			time.sleep(0.001)
 
 	# Close the camaera, save metadata, and tell writer and display to close
@@ -140,7 +136,7 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopQueue):
 	SaveMetadata(cam_params, grabdata)
 	if not sys.platform=='win32' or not cam_params['cameraMake'] == 'basler':
 		dispQueue.append('STOP')
-	writeQueue.append('STOP')
+	stopWriteQueue.append('STOP')
 
 def SaveMetadata(cam_params, grabdata):
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
@@ -162,7 +158,6 @@ def SaveMetadata(cam_params, grabdata):
 		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
 		x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
 		np.save(npy_filename,x)
-		print('Saved frametimes.npy for {}'.format(cam_params['cameraName']))
 
 		# Also save frame data to MATLAB file
 		mat_filename = os.path.join(full_folder_name, 'frametimes.mat')
@@ -170,7 +165,6 @@ def SaveMetadata(cam_params, grabdata):
 		matdata['frameNumber'] = grabdata['frameNumber']
 		matdata['timeStamp'] = grabdata['timeStamp']
 		sio.savemat(mat_filename, matdata, do_compression=True)
-		print('Saved frametimes.mat for {}'.format(cam_params['cameraName']))
 
 		# Save parameters and recording metadata to csv spreadsheet
 		csv_filename = os.path.join(full_folder_name, 'metadata.csv')
@@ -183,9 +177,11 @@ def SaveMetadata(cam_params, grabdata):
 				# Print items that are not objects or dicts
 				if isinstance(row[1],(list,str,int,float)):
 					w.writerow(row)
-		print('Saved metadata.csv for {}'.format(cam_params['cameraName']))
-	except Exception:
-		pass
+
+		print('Saved metadata for {}.'.format(cam_params['cameraName']))
+
+	except Exception as e:
+		logging.error('Caught exception: {}'.format(e))
 
 def CloseSystems(params):
 	print('Closing systems...')
@@ -197,4 +193,4 @@ def CloseSystems(params):
 		device_list = params["systems"][makes[m]]["deviceList"]
 		cam = ImportCam(cam_params)
 		cam.CloseSystem(system, device_list)
-	print('Goodbye!')
+	print('Exiting campy...')
