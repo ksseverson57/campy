@@ -8,12 +8,13 @@
 - Windows or Linux PC
 
 ## Installation
-- Update graphics drivers
-- Create and activate a new Python 3.7 Anaconda environment:
+- 1. Update graphics drivers
+- 2. Create and activate a new Python 3.7 Anaconda environment:
 ```
-conda create -n campy python=3.7 imageio-ffmpeg -c conda-forge
+conda create -n campy python=3.7 imageio-ffmpeg matplotlib -c conda-forge
 conda activate campy
 ```
+- 3. Install camera software
 - If using Basler cameras, install Pylon software:
   - Install Basler Pylon with Developer options
   - Install pypylon:
@@ -34,11 +35,14 @@ conda activate campy
   ```
   pip3 install <wheel>
   ```
-- Clone or download campy to local folder
-- Install campy and other dependencies by navigating to campy folder:
+- 4. Clone or download campy to local folder
+- 5. Update setuptools
 ```
-python setup.py install
-pip install .
+pip install -U setuptools
+```
+- 6. Finally, install campy and its dependencies (see setup.py) by navigating to campy folder:
+```
+pip install -e .
 ```
 
 ## Usage
