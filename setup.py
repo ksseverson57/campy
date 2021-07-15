@@ -8,7 +8,6 @@ setup(
 					'imageio',
 					'matplotlib',
 					'numpy',
-					'pyqt5',
 					'pyserial',
 					'pyyaml',
 					'scikit-image',
