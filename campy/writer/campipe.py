@@ -5,8 +5,9 @@ import os
 import time
 import logging
 import sys
+from campy.utils.utils import QueueKeyboardInterrupt
 
-def OpenWriter(cam_params):
+def OpenWriter(cam_params, queue):
 	writing = False
 	folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
 	file_name = cam_params["videoFilename"]
@@ -111,28 +112,36 @@ def OpenWriter(cam_params):
 			logging.error('Caught exception: {}'.format(e))
 			time.sleep(0.1)
 
-	return writer, writing
+	# Initialize read queue object to signal interrupt
+	readQueue = {}
+	readQueue["queue"] = queue
+	readQueue["message"] = 'STOP'
 
-def WriteFrames(cam_params, writeQueue, stopQueue):
+	return writer, writing, readQueue
+
+def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 	# Start ffmpeg video writer 
-	writer, writing = OpenWriter(cam_params)
-	message = ''
+	writer, writing, readQueue = OpenWriter(cam_params, stopReadQueue)
 
-	# Write until interrupted or stop message received
-	while(writing):
-		try:
-			if writeQueue:
-				message = writeQueue.popleft()
-				if isinstance(message, str) and message=='STOP':
-					writing = False
+	with QueueKeyboardInterrupt(readQueue):
+		# Write until interrupted and/or stop message received
+		while(writing):
+			try:
+				if writeQueue:
+					writer.send(writeQueue.popleft())
 				else:
-					writer.send(message)
-			else:
-				time.sleep(0.001)
-		except KeyboardInterrupt:
-			stopQueue.append('STOP')
+					# Once queue is depleted and grabber stops, then stop writing
+					if stopWriteQueue:
+						writing = False
+					# Otherwise continue writing
+					time.sleep(0.01)
 
-	# Close up...
-	print('Closing video writer for {}. Please wait...'.format(cam_params["cameraName"]))
-	writer.close()
-	time.sleep(2)
+			except Exception as e:
+				pass
+
+		# Close up...
+		print('Closing video writer for {}. Please wait...'.format(cam_params["cameraName"]))
+		writer.close()
+		time.sleep(1)
+    
+
