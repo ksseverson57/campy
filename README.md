@@ -11,13 +11,8 @@
 - Update graphics drivers
 - Create and activate a new Python 3.7 Anaconda environment:
 ```
-conda create -n campy python=3.7 imageio ffmpeg matplotlib
+conda create -n campy python=3.7 imageio-ffmpeg -c conda-forge
 conda activate campy
-```
-- Optionally, manually install dependencies:
-```
-conda install numpy imageio scikit-image pyyaml
-conda install imageio-ffmpeg -c conda-forge
 ```
 - If using Basler cameras, install Pylon software:
   - Install Basler Pylon with Developer options

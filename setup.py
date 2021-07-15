@@ -2,16 +2,16 @@ from setuptools import setup, find_packages
 
 setup(
 	name='campy',
-	version='1.0.0',
+	version='2.0.0',
 	packages=find_packages(),
 	install_requires=[
-					'numpy',
 					'imageio',
-					'imageio-ffmpeg',
-					'scikit-image',
 					'matplotlib',
-					'pyyaml',
+					'numpy',
+					'pyqt5',
 					'pyserial',
+					'pyyaml',
+					'scikit-image',
 					],
 	entry_points={
 		"console_scripts": [
