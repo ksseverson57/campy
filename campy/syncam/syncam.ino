@@ -1,6 +1,7 @@
 int DIG_out_pins[] = {2, 4, 7, 8, 12, 13}; // 3, 5, 6, 9, 10, 11 = PWM
 int n_sync = 1;
-unsigned long frame_rate, frame_period, pulse_duration; // fps
+unsigned long frame_rate = 0;
+unsigned long frame_period, pulse_duration; // fps
 
 void setup( void )
 {
@@ -12,6 +13,7 @@ void setup( void )
   }
   
   Serial.begin(115200);
+  Serial.println("Set baudrate to 115200.");
   Serial.println("Enter your frame rate:");
   
   // Wait to receive data from Python or Serial Monitor...
@@ -19,14 +21,27 @@ void setup( void )
 
   frame_rate = Serial.parseInt();
   Serial.println(frame_rate);
-  frame_period = 1e6 / frame_rate; // microseconds
-  pulse_duration = frame_period / 2; // ~50% duty cycle
+  if (frame_rate == 0) { // Avoid divide-by-zero error
+    frame_period = 0xFFFFFFFF;
+    pulse_duration = 0xFFFFFFFF;
+  }
+  else {
+    frame_period = 1e6 / frame_rate; // microseconds
+    pulse_duration = frame_period / 2; // ~50% duty cycle
+  }
   Serial.println(frame_period);
   Serial.println(pulse_duration);
-  delay(2000); // Wait n ms for streams and cams to initialize
+  delay(4000); // Wait n ms for streams and cams to initialize
 }
 
 void loop( void ) {
+  // Stay on lookout for pyserial com
+  // If message sent, stop triggers
+  if (Serial.available() == 1) {
+    frame_period = 0xFFFFFFFF;
+    pulse_duration = 0xFFFFFFFF;
+  }
+
   noInterrupts();
   unsigned long frame_start = micros();
   for ( byte i = 0; i < n_sync; i++ ) {
