@@ -1,7 +1,7 @@
 """
 CamPy: Python-based multi-camera recording software.
 Integrates machine vision camera APIs with ffmpeg real-time compression.
-Outputs one MP4 video file for each camera and metadata files
+Outputs one MP4 video file and metadata files for each camera
 
 'campy' is the main console. 
 User inputs are loaded from config yaml file using a command line interface (CLI) into the 'params' dictionary.
@@ -29,7 +29,6 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import ast
 import yaml
 import logging
-import serial
 
 def CombineConfigAndClargs(clargs):
 	params = LoadConfig(clargs.config)
@@ -67,6 +66,10 @@ def LoadSystemsAndDevices(params):
 	params = unicam.LoadSystems(params)
 	params = unicam.GetDeviceList(params)
 	return params
+
+def CloseSystems(params):
+	
+	unicam.CloseSystems(params)
 
 def CreateCamParams(params, n_cam):
 	# Insert camera-specific metadata from parameters into cam_params dictionary
@@ -303,9 +306,10 @@ def AcquireOneCamera(n_cam):
 	print('Importing {} cam for {}'.format(cam_params["cameraMake"], cam_params["cameraName"]))
 	cam = unicam.ImportCam(cam_params)
 
-	# Initialize queues for video writer and stop message
+	# Initialize queues for video writer and stop messages
 	writeQueue = deque()
-	stopQueue = deque([], 1)
+	stopReadQueue = deque([],1)
+	stopWriteQueue = deque([],1)
 
 	# Start image window display thread
 	dispQueue = deque([], 2)
@@ -319,44 +323,51 @@ def AcquireOneCamera(n_cam):
 	threading.Thread(
 		target = unicam.GrabFrames,
 		daemon = True,
-		args = (cam_params, writeQueue, dispQueue, stopQueue,),
+		args = (cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue,),
 		).start()
 
 	# Start video file writer (main 'consumer' thread)
-	campipe.WriteFrames(cam_params, writeQueue, stopQueue)
-
-	# Close the systems and devices properly
-	# unicam.CloseSystems(params)
+	campipe.WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue)
 
 def Main():
 	# Optionally, user can manually set path to find ffmpeg binary.
 	if params["ffmpegPath"]:
 		os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpegPath"]
 
-	# If desired, start the arduino.
-	# The arduino sketch delays prior to starting to allow the cameras to initialize. 
-	if params["startArduino"]:
+	while(True):
 		try:
-			print('Opening arduino port {}'.format(params["serialPort"]), flush=True)
-			ser = serial.Serial(port=params["serialPort"], baudrate=115200, timeout=0.1)
-			print("Starting arduino loop", flush=True)
-			time.sleep(2)
-			ser.write(str(params["frameRate"]).encode()) #'utf-8'
-			print("Arduino is ready to trigger!", flush=True)
-		except Exception as e:
-			logging.error('Caught exception: {}'.format(e))
+			# If desired, start the arduino.
+			# The arduino sketch delays prior to starting to allow the cameras to initialize. 
+			if params["startArduino"]:
+				try:
+					import serial
+					print('Opening arduino port {}'.format(params["serialPort"]), flush=True)
+					ser = serial.Serial(port=params["serialPort"], baudrate=115200, timeout=0.1)
+					print("Starting arduino loop", flush=True)
+					time.sleep(3)
+					ser.write(str(params["frameRate"]).encode())
+					print("Arduino is ready to trigger!", flush=True)
+				except Exception as e:
+					logging.error('Caught exception: {}'.format(e))
+					break
 
-	if sys.platform == "win32":
-		pool = mp.Pool(processes=params['numCams'])
-		pool.map(AcquireOneCamera, range(0,params['numCams']))
+			if sys.platform == "win32":
+				pool = mp.Pool(processes=params['numCams'])
+				pool.map(AcquireOneCamera, range(0,params['numCams']))
+			elif sys.platform == "linux" or sys.platform == "linux2":
+				ctx = mp.get_context("spawn")  # for linux compatibility
+				pool = ctx.Pool(processes=params['numCams'])
+				p = pool.map_async(AcquireOneCamera, range(0,params['numCams']))
+				p.get()
 
-	elif sys.platform == "linux" or sys.platform == "linux2":
-		ctx = mp.get_context("spawn")  # for linux compatibility
-		pool = ctx.Pool(processes=params['numCams'])
-		p = pool.map_async(AcquireOneCamera, range(0,params['numCams']))
-		p.get()
+		except KeyboardInterrupt:
+			if params["startArduino"]:
+				print('Closing serial connection...')
+				ser.write(str(0).encode())
+				ser.close()
+		break
 
-	unicam.CloseSystems(params)
+	CloseSystems(params)
 
 parser = ArgumentParser(
 	description="Campy CLI", 
