@@ -1,0 +1,41 @@
+# Video parameters
+videoFolder: "D:/test"
+videoFilename: "test.mp4"
+frameRate: 120
+recTimeInSec: 60
+
+# Camera parameters
+numCams: 1
+cameraSelection: [0] # ,1,2,3]  # selects which cameras are used and in which order
+cameraNames: ["Cam_A"] # ,"Cam_B","Cam_C","Cam_D"]
+# cameraSettings: "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
+cameraMake: "flir"
+pixelFormatInput: "gray"  # 'bayer_bggr8', 'gray', 'rgb24', 'bgr0', 'yuv420p'
+pixelFormatOutput: "gray"
+
+# FLIR camera settings (options can be checked from Spinnaker SDK, not every option is implemented!)
+exposureTimeInUs: 400  # In microseconds
+gain: 0  # 0-40
+bufferMode: "OldestFirst"  # First in, first out
+bufferSize: 100  # 10-100. Don't set this to more than 100. Even tho the camera max is much higher, it doesn't work (probably a bug of Spinnaker)
+disableGamma: True  # Gamma correction is not recommended for scientific purposes
+grabTimeOutInMilliseconds: 10000 # Frame grabbing timeout in milliseconds. If camera doesn't receive frames for this amount of time, it will stop the recording."
+
+# Compression parameters
+ffmpegLogLevel: "info"   # "quiet", "warning", "info"
+gpuID: [0] # ,0,0,0]         # -1 = CPU, GPU id for Nvidia multi-GPU, default is 0
+gpuMake: "nvidia"         # "nvidia", "amd", "intel"
+codec: "h264"             # "h264", "h265", or user-defined video codec
+quality: "23"             # 0-55
+
+# Display parameters -- not currently in use.
+chunkLengthInSec: 15
+displayFrameRate: 5
+displayDownsample: 4
+
+# Other parameters
+ffmpegPath: "" # "C:/FFmpeg/bin/ffmpeg.exe"
+frameWidth: 1536 
+frameHeight: 1536 
+cameraTrigger: "None"
+

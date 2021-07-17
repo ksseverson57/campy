@@ -26,12 +26,13 @@ class ImageNotCompleteException(Exception):
         self.message = message
 
 
+# TODO: Fix triggering for non-triggered case.
+
 class TriggerType:
     SOFTWARE = 1
     HARDWARE = 2
+    NONE = 3
 
-
-CHOSEN_TRIGGER = TriggerType.HARDWARE
 
 
 def ConfigureTrigger(cam_params, camera):
@@ -51,7 +52,9 @@ def ConfigureTrigger(cam_params, camera):
         print('Software trigger chosen...')
     elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
         print('Hardware trigger chosen...')
-
+    if cam_params['cameraTrigger'].lower() == "none":
+        camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+        return False
     try:
         result = True
         # Ensure trigger mode off
@@ -434,13 +437,9 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
             print("height_to_set is set to height_to_set = {}".format(height_to_set))
             cam_params["frameHeight"] = height_to_set
 
-        # ToDo: Get this value from the camera
-        # ToDo: Reset the ROI back to default
-        max_w = 2448
-        max_h = 2048
-
-        # Set maximum width
-        #
+        max_w = PySpin.CIntegerPtr(nodemap.GetNode("Width")).GetMax()
+        max_h = PySpin.CIntegerPtr(nodemap.GetNode("Height")).GetMax()
+        
         # *** NOTES ***
         # Other nodes, such as those corresponding to image width and height,
         # might have an increment other than 1. In these cases, it can be
@@ -449,7 +448,6 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
         # there is no reason to check against the increment.
         node_width = PySpin.CIntegerPtr(nodemap.GetNode('Width'))
         if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
-            # width_to_set = node_width.GetMax()
             width_to_set = cam_params["frameWidth"]
             node_width.SetValue(width_to_set)
             print('Width set to %i...' % node_width.GetValue())
@@ -469,13 +467,11 @@ def ConfigureCustomImageSettings(cam_params, nodemap):
         else:
             print('Width not available...')
 
-        # Set maximum height
         # *** NOTES ***
         # A maximum is retrieved with the method GetMax(). A node's minimum and
         # maximum should always be a multiple of its increment.
         node_height = PySpin.CIntegerPtr(nodemap.GetNode('Height'))
         if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
-            # height_to_set = node_height.GetMax()
             height_to_set = cam_params["frameHeight"]
             node_height.SetValue(height_to_set)
             print('Height set to %i...' % node_height.GetValue())
