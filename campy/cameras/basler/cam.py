@@ -11,22 +11,32 @@ import numpy as np
 from collections import deque
 import csv
 
+
 def LoadSystem(params):
 
 	return pylon.TlFactory.GetInstance()
 
+
 def GetDeviceList(system):
 
 	return system.EnumerateDevices()
+
 
 def LoadDevice(params, cam_params):
 	system = params["systems"]["basler"]["system"]
 	cam_params["camera"] = system.CreateDevice(cam_params["device"])
 	return cam_params
 
+
 def GetSerialNumber(device):
 
 	return device.GetSerialNumber()
+
+
+def GetModelName(camera):
+
+	return camera.GetDeviceInfo().GetModelName()
+
 
 def OpenCamera(cam_params):
 	# Open the camera
@@ -34,29 +44,30 @@ def OpenCamera(cam_params):
 	camera.Open()
 
 	# Load camera settings
+	cam_params['cameraModel'] = GetModelName(camera)
 	cam_params = LoadSettings(cam_params, camera)
 
-	print("Opened {}, serial#: {}".format(cam_params["cameraName"], cam_params["cameraSerialNo"]))
-
 	return camera, cam_params
+
 
 def LoadSettings(cam_params, camera):
 	# Load settings from Pylon features file
 	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), False) #Validation is false
+	camera.MaxNumBuffer = cam_params["bufferSize"] # bufferSize is 500 frames
 	
 	# Get camera information and save to cam_params for metadata
-	cam_params['cameraModel'] = camera.GetDeviceInfo().GetModelName()
 	cam_params['frameWidth'] = camera.Width.GetValue()
 	cam_params['frameHeight'] = camera.Height.GetValue()
-	camera.MaxNumBuffer = 500 # bufferSize is 500 frames
 
 	return cam_params
+
 
 def OpenImageWindow(cam_params):
 	imageWindow = pylon.PylonImageWindow()
 	imageWindow.Create(cam_params["n_cam"])
 	imageWindow.Show()
 	return imageWindow
+
 
 def StartGrabbing(camera):
 	try:
@@ -65,17 +76,21 @@ def StartGrabbing(camera):
 	except Exception:
 		return False
 
+
 def GrabFrame(camera, cnt):
 
 	return camera.RetrieveResult(0, pylon.TimeoutHandling_ThrowException)
+
 
 def GetImageArray(grabResult, cam_params):
 
 	return grabResult.Array
 
+
 def GetTimeStamp(grabResult, camera):
 
 	return grabResult.TimeStamp*1e-9
+
 
 def DisplayImage(cam_params, dispQueue, grabResult):
 	# Basler display window is more performant than generic matplot figure
@@ -96,15 +111,18 @@ def DisplayImage(cam_params, dispQueue, grabResult):
 		# Send image to display window thru queue
 		dispQueue.append(img)
 
+
 def ReleaseFrame(grabResult):
 
 	grabResult.Release()
+
 
 def CloseCamera(cam_params, camera):
 	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
 	# Close Basler camera after acquisition stops
 	camera.StopGrabbing()
 	camera.Close()
+
 
 def CloseSystem(system, device_list):
 	del system
