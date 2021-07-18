@@ -30,6 +30,7 @@ import ast
 import yaml
 import logging
 
+
 def CombineConfigAndClargs(clargs):
 	params = LoadConfig(clargs.config)
 	CheckConfig(params, clargs)
@@ -37,6 +38,7 @@ def CombineConfigAndClargs(clargs):
 		if value is not None:
 			params[key] = value
 	return params
+
 
 def CheckConfig(params, clargs):
 	default_params = CampyParams()
@@ -54,6 +56,7 @@ def CheckConfig(params, clargs):
 		msg = "Unrecognized keys in the configs: %s" % "".join(invalid_key_msg)
 		raise ValueError(msg)
 
+
 def LoadConfig(config_path):
 	try:
 		with open(config_path, 'rb') as f:
@@ -62,14 +65,17 @@ def LoadConfig(config_path):
 		logging.error('Caught exception: {}'.format(e))
 	return config
 
+
 def LoadSystemsAndDevices(params):
 	params = unicam.LoadSystems(params)
 	params = unicam.GetDeviceList(params)
 	return params
 
+
 def CloseSystems(params):
 	
 	unicam.CloseSystems(params)
+
 
 def CreateCamParams(params, n_cam):
 	# Insert camera-specific metadata from parameters into cam_params dictionary
@@ -84,7 +90,7 @@ def CreateCamParams(params, n_cam):
 						"cameraSelection": n_cam,
 						"cameraSettings": "./campy/cameras/basler/settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs",
 						"cameraMake": "basler", 
-						"cameraTrigger": "Line0", 
+						"cameraTrigger": "Line3", 
 						"cameraExposureTimeInMs": 2000,
 						"cameraGain": 1,
 						"pixelFormatInput": "rgb24", 
@@ -108,6 +114,7 @@ def CreateCamParams(params, n_cam):
 	cam_params["cameraSerialNo"] = params["systems"][cam_params["cameraMake"]]["serials"][cam_params["cameraSelection"]]
 	return cam_params
 
+
 def OptParams(params, cam_params, default_params):
 	# Optionally, user provides a single string or a list of strings, equal in size to numCams
 	# String is passed to all cameras. Else, each list item is passed to its respective camera
@@ -123,10 +130,13 @@ def OptParams(params, cam_params, default_params):
 			cam_params[key] = default_params[key]
 	return cam_params
 
+
 def ParseClargs(parser):
 	parser.add_argument(
 		"config", metavar="config", help="Campy configuration .yaml file.",
 	)
+
+	# Recording arguments
 	parser.add_argument(
 		"--videoFolder", 
 		dest="videoFolder", 
@@ -167,6 +177,14 @@ def ParseClargs(parser):
 		type=int,
 		help="Selects and orders camera indices to include in the recording. List length must be equal to numCams",
 	)
+
+	# Camera arguments. May be specific to particular camera make
+	parser.add_argument(
+		"--cameraMake", 
+		dest="cameraMake", 
+		type=ast.literal_eval,
+		help="Company that produced the camera. Currently supported: 'basler', 'flir'.",
+	)
 	parser.add_argument(
 		"--cameraSettings", 
 		dest="cameraSettings",
@@ -186,10 +204,10 @@ def ParseClargs(parser):
 		help="Integer indicating camera output line for exposure active signal (e.g. 2).",
 	)
 	parser.add_argument(
-		"--cameraExposureTimeInMs", 
-		dest="cameraExposureTimeInMs",
+		"--cameraExposureTimeInUs", 
+		dest="cameraExposureTimeInUs",
 		type=int, 
-		help="Exposure time for each camera frame.",
+		help="Exposure time (in microseconds) for each camera frame.",
 	)
 	parser.add_argument(
 		"--cameraGain", 
@@ -210,11 +228,25 @@ def ParseClargs(parser):
 		help="Frame width in pixels.",
 	)
 	parser.add_argument(
-		"--cameraMake", 
-		dest="cameraMake", 
-		type=ast.literal_eval,
-		help="Company that produced the camera. Currently supported: 'basler'.",
+		"--disableGamma", 
+		dest="disableGamma",
+		type=bool, 
+		help="Whether to disable gamma (default: True).",
 	)
+	parser.add_argument(
+		"--bufferMode", 
+		dest="bufferMode",
+		type=ast.literal_eval, 
+		help="Type of buffer to use in camera (default: 'OldestFirst').",
+	)
+	parser.add_argument(
+		"--bufferSize", 
+		dest="bufferSize",
+		type=ast.literal_eval, 
+		help="Size of buffer to use in camera in frames (default: 100).",
+	)
+
+	# ffmpeg arguments
 	parser.add_argument(
 		"--pixelFormatInput",
 		dest="pixelFormatInput",
@@ -262,6 +294,8 @@ def ParseClargs(parser):
 		type=int,
 		help="Compression quality. Lower number is less compression and larger files. '23' is visually lossless.",
 	)
+
+	# Display and CLI feedback arguments
 	parser.add_argument(
 		"--chunkLengthInSec",
 		dest="chunkLengthInSec",
@@ -280,6 +314,8 @@ def ParseClargs(parser):
 		type=int,
 		help="Downsampling factor for displaying images.",
 	)
+
+	# Microcontroller triggering arguments
 	parser.add_argument(
 		"--startArduino",
 		dest="startArduino",
@@ -294,6 +330,7 @@ def ParseClargs(parser):
 	)
 
 	return parser.parse_args()
+
 
 def AcquireOneCamera(n_cam):
 	# Initializes metadata dictionary for this camera stream
@@ -326,8 +363,9 @@ def AcquireOneCamera(n_cam):
 		args = (cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue,),
 		).start()
 
-	# Start video file writer (main 'consumer' thread)
+	# Start video file writer (main 'consumer' process)
 	campipe.WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue)
+
 
 def Main():
 	# Optionally, user can manually set path to find ffmpeg binary.
@@ -368,6 +406,7 @@ def Main():
 		break
 
 	CloseSystems(params)
+
 
 parser = ArgumentParser(
 	description="Campy CLI", 
