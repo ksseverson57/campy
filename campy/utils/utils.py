@@ -21,7 +21,7 @@ class QueueKeyboardInterrupt(object):
 				
 	def handler(self, sig, frame):
 		self.signal_received = (sig, frame)
-		logging.debug('SIGINT received. Delaying KeyboardInterrupt.')
+		print('SIGINT received. KeyboardInterrupt has been queued.', flush=True)
 		self.queue.append(self.message)
 	
 	def __exit__(self, type, value, traceback):
@@ -45,7 +45,7 @@ class HandleKeyboardInterrupt:
 				
 	def handler(self, sig, frame):
 		self.signal_received = (sig, frame)
-		logging.debug('SIGINT received. Delaying KeyboardInterrupt.')
+		logging.error('SIGINT received. Delaying KeyboardInterrupt.')
 	
 	def __exit__(self, type, value, traceback):
 		pass
