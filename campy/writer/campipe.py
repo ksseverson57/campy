@@ -109,7 +109,7 @@ def OpenWriter(cam_params, queue):
 			break
 			
 		except Exception as e:
-			logging.error('Caught exception: {}'.format(e))
+			logging.error('Caught exception at campipe.py OpenWriter: {}'.format(e))
 			time.sleep(0.1)
 
 	# Initialize read queue object to signal interrupt
@@ -126,18 +126,14 @@ def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 	with QueueKeyboardInterrupt(readQueue):
 		# Write until interrupted and/or stop message received
 		while(writing):
-			try:
-				if writeQueue:
-					writer.send(writeQueue.popleft())
-				else:
-					# Once queue is depleted and grabber stops, then stop writing
-					if stopWriteQueue:
-						writing = False
-					# Otherwise continue writing
-					time.sleep(0.01)
-
-			except Exception as e:
-				pass
+			if writeQueue:
+				writer.send(writeQueue.popleft())
+			else:
+				# Once queue is depleted and grabber stops, then stop writing
+				if stopWriteQueue:
+					writing = False
+				# Otherwise continue writing
+				time.sleep(0.01)
 
 		# Close up...
 		print('Closing video writer for {}. Please wait...'.format(cam_params["cameraName"]))
