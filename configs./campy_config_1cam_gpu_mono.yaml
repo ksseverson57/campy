@@ -1,0 +1,33 @@
+# This beginner-level example config uses 
+# Intel's integrated GPU ("Quick Sync Video")
+# to save the video to disk**
+# **Video stream is high quality, not compressed in much in size
+# Intel dedicated GPUs (DG1, DG2) will be supported in a future release
+
+# Recording parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 100
+recTimeInSec: 3600
+
+# Camera parameters
+numCams: 3
+cameraMake: "basler"
+cameraSettings: "./campy/cameras/basler/rgb24.pfs"
+frameWidth: 1152
+frameHeight: 1024
+
+# Compression parameters
+ffmpegLogLevel: "warning"
+gpuID: 0
+gpuMake: "intel" # iGPU "Quick Sync"
+pixelFormatInput: "rgb24"
+pixelFormatOutput: "bgr0"
+quality: 21
+codec: "h264"
+preset: "faster"
+
+# Display parameters
+displayFrameRate: 10
+
+startArduino: True
