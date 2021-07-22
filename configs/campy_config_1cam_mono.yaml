@@ -1,0 +1,24 @@
+# This beginner-level config uses the CPU (gpuID: -1) 
+# to compress monochrome video
+# using ffmpeg's X264 codec
+
+# Recording parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 100
+recTimeInSec: 30
+
+# Camera parameters
+numCams: 1
+cameraMake: "basler"
+cameraSettings: "./campy/cameras/basler/mono8.pfs"
+frameWidth: 1152
+frameHeight: 1024
+
+# Compression parameters
+gpuID: -1
+pixelFormatInput: "gray"
+pixelFormatOutput: "rgb0"
+
+# Display parameters
+displayFrameRate: 10

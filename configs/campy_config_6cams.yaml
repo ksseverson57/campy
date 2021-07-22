@@ -1,0 +1,31 @@
+# Video parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 100
+recTimeInSec: 30
+
+# Camera parameters
+numCams: 6
+cameraSelection: [0,1,2,3,4,5]
+cameraNames: ["Camera1","Camera2","Camera3","Camera4","Camera5","Camera6"]
+cameraMake: "basler"
+cameraSettings: "./campy/cameras/basler/rgb24.pfs"
+pixelFormatInput: "rgb24"
+pixelFormatOutput: "rgb0"
+frameWidth: 1152
+frameHeight: 1024
+
+# Compression parameters
+ffmpegLogLevel: "quiet"               # "quiet", "warning", "info"
+gpuID: [0,0,0,1,1,1]                  # multiple GPUs can be indexed like this            
+gpuMake: "nvidia"                     # "nvidia", "amd"                 
+codec: "h264"                         # "h264", "h265", or user-defined video codec
+quality: 21                           # 0-55
+
+# Display parameters
+chunkLengthInSec: 5
+displayFrameRate: 10
+
+# Trigger parameters
+startArduino: True
+serialPort: "COM3"
