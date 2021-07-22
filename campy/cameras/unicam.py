@@ -3,43 +3,47 @@ Unicam unifies camera APIs with common syntax to simplify multi-camera acquisiti
 reduce redundancy in campy code.
 """
 
-import os
-import sys
+import os, sys, time, csv, logging
 import numpy as np
-import csv
-import time
 from collections import deque
-import logging
 from scipy import io as sio
-	
+
 
 def ImportCam(cam_params):
 	if cam_params["cameraMake"] == "basler":
-		from campy.cameras.basler import cam
+		from campy.cameras import basler as cam
 	elif cam_params["cameraMake"] == "flir":
-		from campy.cameras.flir import cam
+		from campy.cameras import flir as cam
 	elif cam_params["cameraMake"] == "emu":
-		from campy.cameras.emu import cam
+		from campy.cameras import emu as cam
 	else:
-		print('Camera make is not supported by CamPy. Check config.')
+		print('Camera make is not supported by CamPy. Check config.', flush=True)
 	return cam
 
 
 def LoadSystems(params):
-	params["systems"] = {}
-	cam_params = {}
-	makes = GetMakeList(params)
-	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		cam = ImportCam(cam_params)
-		params["systems"][makes[m]] = {}
-		params["systems"][makes[m]]["system"] = cam.LoadSystem(params)
+	try:
+		params["systems"] = {}
+		cam_params = {}
+		makes = GetMakeList(params)
+		for m in range(len(makes)):
+			cam_params["cameraMake"] = makes[m]
+			params["systems"][makes[m]] = {}
+			cam = ImportCam(cam_params)
+			params["systems"][makes[m]]["system"] = cam.LoadSystem(params)
+	except Exception as e:
+		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
+		raise
 	return params
 
 
 def LoadDevice(params, cam_params):
-	cam = ImportCam(cam_params)
-	cam_params = cam.LoadDevice(params, cam_params)
+	try:
+		cam = ImportCam(cam_params)
+		cam_params = cam.LoadDevice(params, cam_params)
+	except Exception as e:
+		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
+		raise
 	return cam_params
 
 
@@ -57,9 +61,10 @@ def OpenCamera(cam_params, stopWriteQueue):
 			cam_params["cameraSerialNo"]))
 
 	except Exception as e:
+		logging.error("Caught error at cameras/unicam.py OpenCamera: {}".format(e))
 		stopWriteQueue.append('STOP')
 
-	return camera, cam_params
+	return cam, camera, cam_params
 
 
 def GetDeviceList(params):
@@ -94,6 +99,7 @@ def GrabData(cam_params):
 	grabdata = {}
 	grabdata["timeStamp"] = []
 	grabdata["frameNumber"] = []
+	grabdata["cameraName"] = cam_params["cameraName"]
 
 	# Calculate display rate
 	if cam_params["displayFrameRate"] <= 0:
@@ -110,24 +116,34 @@ def GrabData(cam_params):
 	return grabdata
 
 
+def StartGrabbing(camera, cam_params, cam):
+	grabbing = cam.StartGrabbing(camera)
+	if grabbing:
+		print(cam_params["cameraName"], "ready to trigger.")
+	return grabbing
+
+
+def CountFPS(grabdata, frameNumber, timeStamp):
+	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
+		timeElapsed = timeStamp - grabdata["timeStamp"][0]
+		fpsCount = round(frameNumber / timeElapsed, 1)
+		print('{} collected {} frames at {} fps for {} sec.'\
+			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
+
+
 def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue):
 	# Open the camera object
-	camera, cam_params = OpenCamera(cam_params, stopWriteQueue)
+	cam, camera, cam_params = OpenCamera(cam_params, stopWriteQueue)
+
+	# Use Basler's default display window on Windows. Not supported on Linux
+	if sys.platform=='win32' and cam_params["cameraMake"] == 'basler':
+		dispQueue = cam.OpenPylonImageWindow(cam_params)
 
 	# Create dictionary for appending frame number and timestamp information
 	grabdata = GrabData(cam_params)
 
-	# Import the cam module
-	cam = ImportCam(cam_params)
-
-	# Use Basler's default display window on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
-		dispQueue = cam.OpenImageWindow(cam_params)
-
 	# Start grabbing frames from the camera
-	grabbing = cam.StartGrabbing(camera)
-	if grabbing:
-		print(cam_params["cameraName"], "ready to trigger.")
+	grabbing = StartGrabbing(camera, cam_params, cam)
 
 	frameNumber = 0
 	while(not stopReadQueue):
@@ -136,24 +152,20 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 			grabResult = cam.GrabFrame(camera, frameNumber)
 
 			# Append numpy array to writeQueue for writer to append to file
-			img = cam.GetImageArray(grabResult, cam_params)
+			img = cam.GetImageArray(grabResult)
 			writeQueue.append(img)
 
 			# Append timeStamp and frameNumber to grabdata
 			frameNumber += 1
 			grabdata['frameNumber'].append(frameNumber) # first frame = 1
-			timeStamp = cam.GetTimeStamp(grabResult, camera)
+			timeStamp = cam.GetTimeStamp(grabResult)
 			grabdata['timeStamp'].append(timeStamp)
 
 			# Display converted, downsampled image in the Window
 			if frameNumber % grabdata["frameRatio"] == 0:
 				img = cam.DisplayImage(cam_params, dispQueue, grabResult)
 
-			if frameNumber % grabdata["chunkLengthInFrames"] == 0:
-				timeElapsed = timeStamp - grabdata["timeStamp"][0]
-				fps_count = round(frameNumber / (timeElapsed), 1)
-				print('{} collected {} frames at {} fps for {} sec.'\
-					.format(cam_params["cameraName"], frameNumber, fps_count, round(timeElapsed),1))
+			CountFPS(grabdata, frameNumber, timeStamp)
 
 			cam.ReleaseFrame(grabResult)
 
@@ -161,7 +173,8 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 				break
 
 		except Exception as e:
-			# logging.error('Caught exception: {}'.format(e))
+			if cam_params["cameraDebug"]:
+				logging.error('Caught exception at cameras/unicam.py GrabFrames: {}'.format(e))
 			time.sleep(0.001)
 
 	# Close the camaera, save metadata, and tell writer and display to close
