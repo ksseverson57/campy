@@ -215,8 +215,9 @@ def ConfigureCustomImageSettings(camera, cam_params):
 
 		camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
 		camera.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
-		cam_params = ConfigureFrameHeight(camera, cam_params)
+
 		cam_params = ConfigureFrameWidth(camera, cam_params)
+		cam_params = ConfigureFrameHeight(camera, cam_params)
 		cam_params = ConfigurePixelFormat(camera, cam_params)
 		cam_params = ConfigureExposure(camera, cam_params)
 		cam_params = ConfigureGain(camera, cam_params)
@@ -360,25 +361,29 @@ def ConfigureChunkData(camera, cam_params):
 		# transform all of our collected INodes into CEnumEntryPtrs at once.
 		entries = [PySpin.CEnumEntryPtr(chunk_selector_entry) for chunk_selector_entry in chunk_selector.GetEntries()]
 
+		# Retrieve corresponding boolean
+		chunk_enable = PySpin.CBooleanPtr(nodemap.GetNode("ChunkEnable"))
+
 		# Iterate through our list and select each entry node to enable
 		for chunk_selector_entry in entries:
-			# Go to next node if problem occurs
-			if not PySpin.IsAvailable(chunk_selector_entry) or not PySpin.IsReadable(chunk_selector_entry):
-				continue
+			if PySpin.IsAvailable(chunk_selector_entry) and PySpin.IsReadable(chunk_selector_entry):
+				chunk_selector.SetIntValue(chunk_selector_entry.GetValue())
+				chunk_name = chunk_selector_entry.GetSymbolic()
+				chunk_str = "{}:".format(chunk_name)
 
-			chunk_selector.SetIntValue(chunk_selector_entry.GetValue())
+				if PySpin.IsWritable(chunk_enable):
+					if chunk_name=="FrameID" or chunk_name=="Timestamp":
+						chunk_enable.SetValue(True)
+					else:
+						chunk_enable.SetValue(False)
 
-			chunk_str = "\t {}:".format(chunk_selector_entry.GetSymbolic())
-
-			# Retrieve corresponding boolean
-			chunk_enable = PySpin.CBooleanPtr(nodemap.GetNode("ChunkEnable"))
-
-			# Enable the boolean, thus enabling the corresponding chunk data
-			if cam_params["cameraDebug"]:
-				if chunk_enable.GetValue() and PySpin.IsWritable(chunk_enable):
-					print("{} enabled".format(chunk_str))
-				else:
-					print("{} not available".format(chunk_str))
+				if cam_params["cameraDebug"]:
+					if chunk_enable.GetValue() and PySpin.IsWritable(chunk_enable):
+						print("{} enabled".format(chunk_str))
+					elif not chunk_enable.GetValue() and PySpin.IsWritable(chunk_enable):
+						print("{} disabled".format(chunk_str))
+					else:
+						print("{} not available".format(chunk_str))
 
 	except Exception as e:
 		logging.error("Caught error at cameras/flir.py at ConfigureChunkData: {}".format(e))
@@ -449,38 +454,44 @@ def ConfigureFrameHeight(camera, cam_params):
 	frameHeight: X
 	Y offset is limited and centered automatically.
 	"""
-	# Set frame height
-	nodemap = camera.GetNodeMap()
-
-	height_to_set = cam_params["frameHeight"]
-	if height_to_set % 16 != 0:
-		while height_to_set % 16 != 0:
-			height_to_set += 1
-		cam_params["frameHeight"] = height_to_set
-	# Get max offset values from the camera
 	try:
-		max_h = PySpin.CIntegerPtr(nodemap.GetNode("Height")).GetMax()
-	except Exception as e:
-		logging.error("Caught exception at cameras/flir.py GetMax: {}".format(e))
+		# Set frame height
+		nodemap = camera.GetNodeMap()
 
-	node_height = PySpin.CIntegerPtr(nodemap.GetNode("Height"))
-	if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
 		height_to_set = cam_params["frameHeight"]
-		node_height.SetValue(height_to_set)
-		print("Height set to {}...".format(node_height.GetValue()))
-		offset_y = int((max_h-height_to_set)/2)
-		if offset_y % 4 != 0:
-			while offset_y % 4 != 0:
-				offset_y += 1
-			print("offset_y is set to {}".format(offset_y))
-		node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode("OffsetY"))
-		if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
-			node_offset_y.SetValue(offset_y)
-			cam_params["offsetY"] = offset_y
+		if height_to_set % 16 != 0:
+			while height_to_set % 16 != 0:
+				height_to_set += 1
+			cam_params["frameHeight"] = height_to_set
+
+		# Get max offset values from the camera
+		max_h = height_to_set
+		try:
+			max_h = PySpin.CIntegerPtr(nodemap.GetNode("Height")).GetMax()
+		except Exception as e:
+			logging.error("Caught exception at cameras/flir.py GetMax: {}".format(e))
+
+		node_height = PySpin.CIntegerPtr(nodemap.GetNode("Height"))
+		if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
+			height_to_set = cam_params["frameHeight"]
+			node_height.SetValue(height_to_set)
+			offset_y = int((max_h-height_to_set)/2)
+			if offset_y % 4 != 0:
+				while offset_y % 4 != 0:
+					offset_y += 1
+				print("offset_y is set to {}".format(offset_y))
+			node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode("OffsetY"))
+			if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
+				node_offset_y.SetValue(offset_y)
+				cam_params["offsetY"] = offset_y
+			else:
+				print("OffsetY cannot be set!")
 		else:
-			print("OffsetY cannot be set!")
-	else:
-		print("Height not available...")
+			print("Height not available...")
+		print("Height set to {}...".format(node_height.GetValue()))
+
+	except Exception as e:
+		logging.error("Caught exception at cameras/flir.py ConfigureFrameHeight: {}".format(e))
 
 	return cam_params
 
@@ -492,44 +503,51 @@ def ConfigureFrameWidth(camera, cam_params):
 	frameWidth: X
 	X offset is limited and centered automatically.
 	"""
-	nodemap = camera.GetNodeMap()
-	# Set frame width
-	width_to_set = cam_params["frameWidth"]
-	if width_to_set % 16 != 0:
-		while width_to_set % 16 != 0:
-			width_to_set += 1
-		cam_params["frameWidth"] = width_to_set
-
-	# Get max offset values from the camera
 	try:
-		max_w = PySpin.CIntegerPtr(nodemap.GetNode("Width")).GetMax()
-	except Exception as e:
-		logging.error("Caught exception at cameras/flir.py GetMax: {}".format(e))
 
-	# *** NOTES ***
-	# Other nodes, such as those corresponding to image width and height,
-	# might have an increment other than 1. In these cases, it can be
-	# important to check that the desired value is a multiple of the
-	# increment. However, as these values are being set to the maximum,
-	# there is no reason to check against the increment.
-	node_width = PySpin.CIntegerPtr(nodemap.GetNode("Width"))
-	if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
+		nodemap = camera.GetNodeMap()
+		# Set frame width
 		width_to_set = cam_params["frameWidth"]
-		node_width.SetValue(width_to_set)
-		print("Width set to {}...".format(node_width.GetValue()))
-		offset_x = int((max_w-width_to_set)/2)
-		if offset_x % 4 != 0:
-			while offset_x % 4 != 0:
-				offset_x += 1
-			print("offset_x is set to {}".format(offset_x))
-		node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode("OffsetX"))
-		if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
-			node_offset_x.SetValue(offset_x)
-			cam_params["offsetX"] = offset_x
+		if width_to_set % 16 != 0:
+			while width_to_set % 16 != 0:
+				width_to_set += 1
+			cam_params["frameWidth"] = width_to_set
+
+		# Get max offset values from the camera
+		max_w = width_to_set
+		try:
+			max_w = PySpin.CIntegerPtr(nodemap.GetNode("Width")).GetMax()
+		except Exception as e:
+			logging.error("Caught exception at cameras/flir.py GetMax: {}".format(e))
+
+		# *** NOTES ***
+		# Other nodes, such as those corresponding to image width and height,
+		# might have an increment other than 1. In these cases, it can be
+		# important to check that the desired value is a multiple of the
+		# increment. However, as these values are being set to the maximum,
+		# there is no reason to check against the increment.
+		node_width = PySpin.CIntegerPtr(nodemap.GetNode("Width"))
+		if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
+			width_to_set = cam_params["frameWidth"]
+			node_width.SetValue(width_to_set)
+			print("Width set to {}...".format(node_width.GetValue()))
+			offset_x = int((max_w-width_to_set)/2)
+			if offset_x % 4 != 0:
+				while offset_x % 4 != 0:
+					offset_x += 1
+				print("offset_x is set to {}".format(offset_x))
+			node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode("OffsetX"))
+			if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
+				node_offset_x.SetValue(offset_x)
+				cam_params["offsetX"] = offset_x
+			else:
+				print("OffsetX cannot be set!")
 		else:
-			print("OffsetX cannot be set!")
-	else:
-		print("Width not available...")
+			print("Width not available...")
+
+	except Exception as e:
+		logging.error("Caught exception at cameras/flir.py ConfigureFrameWidth: {}".format(e))
+
 	return cam_params
 
 
