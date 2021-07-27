@@ -3,9 +3,10 @@
 - Features real-time hardware-accelerated video compression and debayering using FFmpeg.
 
 ## Hardware/software
-- AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- FLIR and/or Basler machine vision camera(s)
+- (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
+- Basler and/or FLIR machine vision camera(s)
 - Windows or Linux PC
+- Arduino/Teensy microcontroller for syncing cameras
 
 ## Installation
 1. Update graphics drivers
@@ -55,10 +56,12 @@ pip install -e .
 ```
 campy-acquire --help
 ```
+- If using Python serial triggering, upload Arduino .iso file (in campy/triggers folder) to open serial COM.
 - To start your recording:
 ```
 campy-acquire ./configs/config.yaml
 ```
+- If using external camera triggers, campy will wait until triggers start.
 - Press Ctrl^C to end recording before allotted recording time.
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
@@ -66,7 +69,7 @@ campy-acquire ./configs/config.yaml
 Written by Kyle Severson, Diego Aldarondo, and Iris Odstrcil (2019-2021).
 
 ## Credits
-Special thanks to Tim Dunn, David Hildebrand, and Paul Thompson for helpful comments.
+Special thanks to Tim Dunn, David Hildebrand, Vincent Prevosto, Manuel Levy, and Paul Thompson for helpful comments.
 
 ## License
 MIT License
