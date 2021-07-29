@@ -44,7 +44,7 @@ def DefaultParams():
 	params["gpuID"] = -1
 	params["gpuMake"] = "nvidia"
 	params["codec"] = "h264"  
-	params["quality"] = "21"
+	params["quality"] = 21
 	params["preset"] = "None"
 
 	# Display parameters
@@ -57,13 +57,43 @@ def DefaultParams():
 	params["startArduino"] = False
 	params["serialPort"] = "COM3"
 
-
 	return params
 
 
-def AutoParams(params):
-	params["cameraNames"] = ["Camera%s" % n for n in range(params["numCams"])]
-	params["cameraSelection"] = [n for n in range(params["numCams"])]
+def AutoParams(params, default_params):
+	# Handle out of range values (reset to default)
+	range_params = [
+		"numCams",
+		"frameRate",
+		"recTimeInSec",
+		"frameHeight",
+		"frameWidth",
+		"bufferSize",
+		"cameraGain",
+		"cameraExposureTimeInUs",
+		"quality",
+		"chunkLengthInSec",
+		"displayFrameRate",
+		"displayDownsample",
+		]
+
+	for i in range(len(range_params)):
+		key = range_params[i]
+		default_value = default_params[key]
+		if params[key] <= 0:
+			params[key] = default_value
+			print("{} set to invalid value in config. Setting to default ({})."\
+					.format(key, default_value))
+
+	# Handle missing config parameters
+	if "numCams" in params.keys():
+		if "cameraNames" not in params.keys():
+			params["cameraNames"] = ["Camera%s" % n for n in range(params["numCams"])]
+		if "cameraSelection" not in params.keys():
+			params["cameraSelection"] = [n for n in range(params["numCams"])]
+	else:
+		print("Please configure 'numCams' to the number of cameras you want to acquire.")
+
 	return params
 
 
@@ -72,32 +102,45 @@ def ConfigureParams():
 						formatter_class=ArgumentDefaultsHelpFormatter,)
 	clargs = ParseClargs(parser)
 	params = CombineConfigAndClargs(clargs)
+
+	# Optionally, user can manually set path to find ffmpeg binary.
+	if params["ffmpegPath"] is not "None":
+		os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpegPath"]
+
 	return params
 
 
-def ConfigureCamParams(params, n_cam):
+def ConfigureCamParams(systems, params, n_cam):
 	# Insert camera-specific metadata from parameters into cam_params dictionary
 	cam_params = params
 	cam_params["n_cam"] = n_cam
 	cam_params["baseFolder"] = os.getcwd()
 	cam_params["cameraName"] = params["cameraNames"][n_cam]
 
-	cam_params = OptParams(params, cam_params)
-	cam_params["device"] = params["systems"][ cam_params["cameraMake"] ] \
-							["deviceList"][ cam_params["cameraSelection"] ]
-	cam_params = unicam.LoadDevice(params, cam_params)
-	cam_params["cameraSerialNo"] = params["systems"][ cam_params["cameraMake"] ] \
-									["serials"][ cam_params["cameraSelection"] ]
+	cam_params = OptParams(cam_params)
+	cam_make = cam_params["cameraMake"]
+	cam_idx = cam_params["cameraSelection"]
+
+	cam_params["device"] = systems[cam_make]["deviceList"][cam_idx]
+	cam_params = unicam.LoadDevice(systems, params, cam_params)
+
+	cam_params["cameraSerialNo"] = systems[cam_make]["serials"][cam_idx]
+
 	return cam_params
 
 
-def CombineConfigAndClargs(clargs):
-	params = LoadConfig(clargs.config)
-	CheckConfig(params, clargs)
-	for key, value in clargs.__dict__.items():
-		if value is not None:
-			params[key] = value
-	return params
+def OptParams(cam_params):
+	# Optionally, user provides a single string or a list of strings, equal in size to numCams
+	# String is passed to all cameras. Else, each list item is passed to its respective camera
+	for key in cam_params:
+		if type(cam_params[key]) is list:
+			if len(cam_params[key]) == cam_params["numCams"]:
+				cam_params[key] = cam_params[key][cam_params["n_cam"]]
+			else:
+				logging.warning("{} size mismatch with numCams. Using list idx {}."\
+						.format(key,cam_params["n_cam"]))
+				cam_params[key] = cam_params[key][cam_params["n_cam"]]
+	return cam_params
 
 
 def CheckConfig(params, clargs):
@@ -106,10 +149,9 @@ def CheckConfig(params, clargs):
 		if key not in params.keys():
 			params[key] = value
 
-	auto_params = AutoParams(params)
+	auto_params = AutoParams(params, default_params)
 	for key,value in auto_params.items():
-		if key not in params.keys():
-			params[key] = value
+		params[key] = value
 
 	invalid_keys = []
 	for key in params.keys():
@@ -120,6 +162,8 @@ def CheckConfig(params, clargs):
 		invalid_key_msg = [" %s," % key for key in invalid_keys]
 		msg = "Unrecognized keys in the config: %s" % "".join(invalid_key_msg)
 		raise ValueError(msg)
+
+	return params
 
 
 def LoadConfig(config_path):
@@ -132,18 +176,13 @@ def LoadConfig(config_path):
 	return config
 
 
-def OptParams(params, cam_params):
-	# Optionally, user provides a single string or a list of strings, equal in size to numCams
-	# String is passed to all cameras. Else, each list item is passed to its respective camera
-	for key in params:
-		if type(params[key]) is list:
-			if len(params[key]) == params["numCams"]:
-				cam_params[key] = params[key][cam_params["n_cam"]]
-			else:
-				logging.warning("{} size mismatch with numCams. Using list idx {}."\
-						.format(key,cam_params["n_cam"]))
-				cam_params[key] = params[key][cam_params["n_cam"]]
-	return cam_params
+def CombineConfigAndClargs(clargs):
+	params = LoadConfig(clargs.config)
+	params = CheckConfig(params, clargs)
+	for key, value in clargs.__dict__.items():
+		if value is not None:
+			params[key] = value
+	return params
 
 
 def ParseClargs(parser):
@@ -165,13 +204,13 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--frameRate", 
 		dest="frameRate",
-		type=int, 
+		type=float, 
 		help="Frame rate equal to trigger frequency.",
 	)
 	parser.add_argument(
 		"--recTimeInSec",
 		dest="recTimeInSec",
-		type=int,
+		type=float,
 		help="Recording time in seconds.",
 	)    
 	parser.add_argument(
@@ -264,7 +303,7 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--bufferSize", 
 		dest="bufferSize",
-		type=ast.literal_eval, 
+		type=int, 
 		help="Size of buffer to use in camera in frames (default: 100).",
 	)
 
@@ -331,13 +370,13 @@ def ParseClargs(parser):
 	parser.add_argument(
 		"--chunkLengthInSec",
 		dest="chunkLengthInSec",
-		type=int,
+		type=float,
 		help="Length of video chunks in seconds for reporting recording progress.",
 	)
 	parser.add_argument(
 		"--displayFrameRate",
 		dest="displayFrameRate",
-		type=int,
+		type=float,
 		help="Display frame rate in Hz. Max ~30.",
 	)
 	parser.add_argument(

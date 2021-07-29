@@ -16,40 +16,35 @@ Usage:
 campy-acquire ./configs/campy_config.yaml
 """
 
-import os, time, sys, threading, queue
+import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
 from campy import writer, display, configurator
 from campy.trigger import trigger
 from campy.cameras import unicam 
 
-
 def OpenSystems():
 	# Configure parameters
 	params = configurator.ConfigureParams()
 
-	# Optionally, user can manually set path to find ffmpeg binary.
-	if params["ffmpegPath"] is not "None":
-		os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpegPath"]
-
 	# Load Camera Systems and Devices
-	params = unicam.LoadSystems(params)
-	params = unicam.GetDeviceList(params)
+	systems = unicam.LoadSystems(params)
+	systems = unicam.GetDeviceList(systems, params)
 
 	# Start camera triggers if configured
-	params = trigger.StartTriggers(params)
+	systems = trigger.StartTriggers(systems, params)
 
-	return params
+	return systems, params
 
 
-def CloseSystems(params):
-	trigger.StopTriggers(params)
-	unicam.CloseSystems(params)
+def CloseSystems(systems, params):
+	trigger.StopTriggers(systems, params)
+	unicam.CloseSystems(systems, params)
 
 
 def AcquireOneCamera(n_cam):
 	# Initialize param dictionary for this camera stream
-	cam_params = configurator.ConfigureCamParams(params, n_cam)
+	cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
 
 	# Initialize queues for display, video writer, and stop messages
 	dispQueue = deque([], 2)
@@ -77,11 +72,12 @@ def AcquireOneCamera(n_cam):
 
 def Main():
 	try:
-		# Windows/Linux compatible parallel processing
 		n = params["numCams"]
-		mp.get_context("spawn").Pool(n).map_async(AcquireOneCamera, range(n)).get()
-	except KeyboardInterrupt: pass
-	CloseSystems(params)
+		mp.get_context("spawn").Pool(n).map_async(AcquireOneCamera,range(n)).get()
+	except KeyboardInterrupt: 
+		pass
 
-# Opens systems, creates global 'params' variable
-params = OpenSystems()
+	CloseSystems(systems, params)
+
+# Open systems, creates global 'systems' and 'params' variables
+systems, params = OpenSystems()
