@@ -12,19 +12,20 @@ E.g. Wait for 'Ready' message from Arduino to Python
 import serial
 import time, logging
 
-def StartTriggers(params):
+
+def StartTriggers(systems, params):
 	try:
-		params["serial"] = serial.Serial(port=params["serialPort"], baudrate=115200, timeout=0.1)
+		systems["serial"] = serial.Serial(port=params["serialPort"], baudrate=115200, timeout=0.1)
 		time.sleep(3)
-		params["serial"].write(str(params["frameRate"]).encode())
+		systems["serial"].write(str(params["frameRate"]).encode())
 		print("Arduino on port {} is ready to trigger at {} fps."\
 			.format(params["serialPort"],params["frameRate"]), flush=True)
 	except Exception as e:
 		pass
-	return params
+	return systems
 
 
-def StopTriggers(params):
+def StopTriggers(systems):
 	print("Closing serial connection...")
-	params["serial"].write(str(-1).encode())
-	params["serial"].close()
+	systems["serial"].write(str(-1).encode())
+	systems["serial"].close()

@@ -14,16 +14,16 @@ def ImportTrigger(params):
 	return trigger
 
 
-def StartTriggers(params):
+def StartTriggers(systems, params):
 	if params["startArduino"]:
 		if params["triggerController"] != "None":
 			trigger = ImportTrigger(params)
-			params = trigger.StartTriggers(params)
-	return params
+			systems = trigger.StartTriggers(systems, params)
+	return systems
 
 
-def StopTriggers(params):
+def StopTriggers(systems, params):
 	if params["startArduino"]:
 		if params["triggerController"] != "None":
 			trigger = ImportTrigger(params)
-			trigger.StopTriggers(params)
+			trigger.StopTriggers(systems)
