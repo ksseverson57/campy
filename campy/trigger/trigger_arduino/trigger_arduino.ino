@@ -4,7 +4,7 @@
 // Synchronicity: ~ 10 ns
 
 // User-set parameters
-int DIG_out_pins[] = {2, 4, 7, 8, 12, 13};
+int8_t DIG_out_pins[] = {2, 4, 7, 8, 12, 13};
 uint32_t baudrate = 115200;
 
 // Global variables
