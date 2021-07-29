@@ -9,12 +9,12 @@ from collections import deque
 from scipy import io as sio
 
 
-def ImportCam(cam_params):
-	if cam_params["cameraMake"] == "basler":
+def ImportCam(make):
+	if make == "basler":
 		from campy.cameras import basler as cam
-	elif cam_params["cameraMake"] == "flir":
+	elif make == "flir":
 		from campy.cameras import flir as cam
-	elif cam_params["cameraMake"] == "emu":
+	elif make == "emu":
 		from campy.cameras import emu as cam
 	else:
 		print('Camera make is not supported by CamPy. Check config.', flush=True)
@@ -23,24 +23,22 @@ def ImportCam(cam_params):
 
 def LoadSystems(params):
 	try:
-		params["systems"] = {}
-		cam_params = {}
+		systems = {}
 		makes = GetMakeList(params)
 		for m in range(len(makes)):
-			cam_params["cameraMake"] = makes[m]
-			params["systems"][makes[m]] = {}
-			cam = ImportCam(cam_params)
-			params["systems"][makes[m]]["system"] = cam.LoadSystem(params)
+			systems[makes[m]] = {}
+			cam = ImportCam(makes[m])
+			systems[makes[m]]["system"] = cam.LoadSystem(params)
 	except Exception as e:
 		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
 		raise
-	return params
+	return systems
 
 
-def LoadDevice(params, cam_params):
+def LoadDevice(systems, params, cam_params):
 	try:
-		cam = ImportCam(cam_params)
-		cam_params = cam.LoadDevice(params, cam_params)
+		cam = ImportCam(cam_params["cameraMake"])
+		cam_params = cam.LoadDevice(systems, params, cam_params)
 	except Exception as e:
 		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
 		raise
@@ -49,7 +47,7 @@ def LoadDevice(params, cam_params):
 
 def OpenCamera(cam_params, stopWriteQueue):
 	# Import the cam module
-	cam = ImportCam(cam_params)
+	cam = ImportCam(cam_params["cameraMake"])
 
 	try:
 		camera, cam_params = cam.OpenCamera(cam_params)
@@ -67,30 +65,23 @@ def OpenCamera(cam_params, stopWriteQueue):
 	return cam, camera, cam_params
 
 
-def GetDeviceList(params):
-	serials = []
+def GetDeviceList(systems, params):
 	makes = GetMakeList(params)
-	cam_params = {}
 	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		cam = ImportCam(cam_params)
-		system = params["systems"][makes[m]]["system"]
+		cam = ImportCam(makes[m])
+		system = systems[makes[m]]["system"]
 		deviceList = cam.GetDeviceList(system)
-		serials = []
-		for i in range(len(deviceList)):
-			serials.append(cam.GetSerialNumber(deviceList[i]))
-		params["systems"][makes[m]]["serials"] = serials
-		params["systems"][makes[m]]["deviceList"] = deviceList
-	return params
+		serials = [cam.GetSerialNumber(deviceList[i]) for i in range(len(deviceList))]
+		systems[makes[m]]["serials"] = serials
+		systems[makes[m]]["deviceList"] = deviceList
+	return systems
 
 
 def GetMakeList(params):
-	cameraMakes = []
 	if type(params["cameraMake"]) is list:
-		for m in range(len(params["cameraMake"])):
-			cameraMakes.append(params["cameraMake"][m])
+		cameraMakes = [params["cameraMake"][m] for m in range(len(params["cameraMake"]))]
 	elif type(params["cameraMake"]) is str:
-		cameraMakes.append(params["cameraMake"])
+		cameraMakes = [params["cameraMake"]]
 	makes = list(set(cameraMakes))
 	return makes
 
@@ -231,14 +222,10 @@ def SaveMetadata(cam_params, grabdata):
 		logging.error('Caught exception: {}'.format(e))
 
 
-def CloseSystems(params):
+def CloseSystems(systems, params):
 	print('Closing systems...')
 	makes = GetMakeList(params)
-	cam_params = {}
 	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		system = params["systems"][makes[m]]["system"]
-		device_list = params["systems"][makes[m]]["deviceList"]
-		cam = ImportCam(cam_params)
-		cam.CloseSystem(system, device_list)
+		cam = ImportCam(makes[m])
+		cam.CloseSystem(systems[makes[m]]["system"], systems[makes[m]]["deviceList"])
 	print('Exiting campy...')

@@ -31,7 +31,7 @@ def GetDeviceList(system):
 	return system.GetCameras()
 
 
-def LoadDevice(params, cam_params):
+def LoadDevice(systems, params, cam_params):
 	cam_params["camera"] = cam_params["device"]
 	return cam_params
 

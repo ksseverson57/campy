@@ -18,8 +18,9 @@ def GetDeviceList(system):
 	return system.EnumerateDevices()
 
 
-def LoadDevice(params, cam_params):
-	system = params["systems"]["basler"]["system"]
+def LoadDevice(systems, params, cam_params):
+	# system = params["systems"]["basler"]["system"]
+	system = systems["basler"]["system"]
 	cam_params["camera"] = system.CreateDevice(cam_params["device"])
 	return cam_params
 
