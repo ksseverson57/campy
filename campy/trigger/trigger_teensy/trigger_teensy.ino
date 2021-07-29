@@ -4,7 +4,7 @@
 // Synchronicity: ~ ? ns (not tested yet)
 
 // User-set parameters
-int DIG_out_pins[] = {0,1,2,3,4,5,6};
+int8_t DIG_out_pins[] = {0,1,2,3,4,5,6};
 uint32_t baudrate = 115200;
 
 // Global variables
