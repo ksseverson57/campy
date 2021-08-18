@@ -1,69 +1,96 @@
-import os
-import sys
+"""
+Unicam unifies camera APIs with common syntax to simplify multi-camera acquisition and 
+reduce redundancy in campy code.
+"""
+
+import os, sys, time, csv, logging
 import numpy as np
-import csv
-import time
 from collections import deque
-import logging
 from scipy import io as sio
-	
-def ImportCam(cam_params):
-	if cam_params["cameraMake"] == "basler":
-		from campy.cameras.basler import cam
-	elif cam_params["cameraMake"] == "flir":
-		from campy.cameras.flir import cam
-	elif cam_params["cameraMake"] == "emu":
-		from campy.cameras.emu import cam
+
+
+def ImportCam(make):
+	if make == "basler":
+		from campy.cameras import basler as cam
+	elif make == "flir":
+		from campy.cameras import flir as cam
+	elif make == "emu":
+		from campy.cameras import emu as cam
 	else:
-		print('Camera make is not supported by CamPy. Check config.')
+		print('Camera make is not supported by CamPy. Check config.', flush=True)
 	return cam
 
-def LoadSystems(params):
-	params["systems"] = {}
-	cam_params = {}
-	makes = GetMakeList(params)
-	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		cam = ImportCam(cam_params)
-		params["systems"][makes[m]] = {}
-		params["systems"][makes[m]]["system"] = cam.LoadSystem(params)
-	return params
 
-def LoadDevice(params, cam_params):
-	cam = ImportCam(cam_params)
-	cam_params = cam.LoadDevice(params, cam_params)
+def LoadSystems(params):
+	try:
+		systems = {}
+		makes = GetMakeList(params)
+		for m in range(len(makes)):
+			systems[makes[m]] = {}
+			cam = ImportCam(makes[m])
+			systems[makes[m]]["system"] = cam.LoadSystem(params)
+	except Exception as e:
+		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
+		raise
+	return systems
+
+
+def LoadDevice(systems, params, cam_params):
+	try:
+		cam = ImportCam(cam_params["cameraMake"])
+		cam_params = cam.LoadDevice(systems, params, cam_params)
+	except Exception as e:
+		logging.error('Caught exception at camera/unicam.py LoadSystems. Check cameraMake: {}'.format(e))
+		raise
 	return cam_params
 
-def GetDeviceList(params):
-	serials = []
+
+def OpenCamera(cam_params, stopWriteQueue):
+	# Import the cam module
+	cam = ImportCam(cam_params["cameraMake"])
+
+	try:
+		camera, cam_params = cam.OpenCamera(cam_params)
+
+		print("Opened {}: {} {} serial# {}".format( \
+			cam_params["cameraName"],
+			cam_params["cameraMake"], 
+			cam_params["cameraModel"],
+			cam_params["cameraSerialNo"]))
+
+	except Exception as e:
+		logging.error("Caught error at cameras/unicam.py OpenCamera: {}".format(e))
+		stopWriteQueue.append('STOP')
+
+	return cam, camera, cam_params
+
+
+def GetDeviceList(systems, params):
 	makes = GetMakeList(params)
-	cam_params = {}
 	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		cam = ImportCam(cam_params)
-		system = params["systems"][makes[m]]["system"]
+		cam = ImportCam(makes[m])
+		system = systems[makes[m]]["system"]
 		deviceList = cam.GetDeviceList(system)
-		serials = []
-		for i in range(len(deviceList)):
-			serials.append(cam.GetSerialNumber(deviceList[i]))
-		params["systems"][makes[m]]["serials"] = serials
-		params["systems"][makes[m]]["deviceList"] = deviceList
-	return params
+		serials = [cam.GetSerialNumber(deviceList[i]) for i in range(len(deviceList))]
+		systems[makes[m]]["serials"] = serials
+		systems[makes[m]]["deviceList"] = deviceList
+	return systems
+
 
 def GetMakeList(params):
-	cameraMakes = []
 	if type(params["cameraMake"]) is list:
-		for m in range(len(params["cameraMake"])):
-			cameraMakes.append(params["cameraMake"][m])
+		cameraMakes = [params["cameraMake"][m] for m in range(len(params["cameraMake"]))]
 	elif type(params["cameraMake"]) is str:
-		cameraMakes.append(params["cameraMake"])
+		cameraMakes = [params["cameraMake"]]
 	makes = list(set(cameraMakes))
 	return makes
+
 
 def GrabData(cam_params):
 	grabdata = {}
 	grabdata["timeStamp"] = []
 	grabdata["frameNumber"] = []
+	grabdata["cameraName"] = cam_params["cameraName"]
 
 	# Calculate display rate
 	if cam_params["displayFrameRate"] <= 0:
@@ -79,56 +106,66 @@ def GrabData(cam_params):
 
 	return grabdata
 
-def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue):
-	# Import the cam module
-	cam = ImportCam(cam_params)
 
+def StartGrabbing(camera, cam_params, cam):
+	grabbing = cam.StartGrabbing(camera)
+	if grabbing:
+		print(cam_params["cameraName"], "ready to trigger.")
+	return grabbing
+
+
+def CountFPS(grabdata, frameNumber, timeStamp):
+	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
+		timeElapsed = timeStamp - grabdata["timeStamp"][0]
+		fpsCount = round(frameNumber / timeElapsed, 1)
+		print('{} collected {} frames at {} fps for {} sec.'\
+			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
+
+
+def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue):
 	# Open the camera object
-	camera, cam_params = cam.OpenCamera(cam_params)
+	cam, camera, cam_params = OpenCamera(cam_params, stopWriteQueue)
+
+	# Use Basler's default display window on Windows. Not supported on Linux
+	if sys.platform=='win32' and cam_params["cameraMake"] == 'basler':
+		dispQueue = cam.OpenPylonImageWindow(cam_params)
 
 	# Create dictionary for appending frame number and timestamp information
 	grabdata = GrabData(cam_params)
 
-	# Use Basler's default display window on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params['cameraMake'] == 'basler':
-		dispQueue = cam.OpenImageWindow(cam_params)
-
 	# Start grabbing frames from the camera
-	grabbing = cam.StartGrabbing(camera)
-	print(cam_params["cameraName"], "ready to trigger.")
+	grabbing = StartGrabbing(camera, cam_params, cam)
 
 	frameNumber = 0
-	while(grabbing):
+	while(not stopReadQueue):
 		try:
 			# Grab image from camera buffer if available
 			grabResult = cam.GrabFrame(camera, frameNumber)
 
 			# Append numpy array to writeQueue for writer to append to file
-			img = cam.GetImageArray(grabResult, cam_params)
+			img = cam.GetImageArray(grabResult)
 			writeQueue.append(img)
 
 			# Append timeStamp and frameNumber to grabdata
 			frameNumber += 1
 			grabdata['frameNumber'].append(frameNumber) # first frame = 1
-			timeStamp = cam.GetTimeStamp(grabResult, camera)
+			timeStamp = cam.GetTimeStamp(grabResult)
 			grabdata['timeStamp'].append(timeStamp)
 
 			# Display converted, downsampled image in the Window
 			if frameNumber % grabdata["frameRatio"] == 0:
 				img = cam.DisplayImage(cam_params, dispQueue, grabResult)
 
-			if frameNumber % grabdata["chunkLengthInFrames"] == 0:
-				timeElapsed = timeStamp - grabdata["timeStamp"][0]
-				fps_count = round(frameNumber / (timeElapsed), 1)
-				print('{} collected {} frames at {} fps for {} sec.'\
-					.format(cam_params["cameraName"], frameNumber, fps_count, round(timeElapsed),1))
+			CountFPS(grabdata, frameNumber, timeStamp)
 
 			cam.ReleaseFrame(grabResult)
 
-			if stopReadQueue or frameNumber >= grabdata["numImagesToGrab"]:
-				grabbing = False
+			if frameNumber >= grabdata["numImagesToGrab"]:
+				break
 
-		except Exception:
+		except Exception as e:
+			if cam_params["cameraDebug"]:
+				logging.error('Caught exception at cameras/unicam.py GrabFrames: {}'.format(e))
 			time.sleep(0.001)
 
 	# Close the camaera, save metadata, and tell writer and display to close
@@ -137,6 +174,7 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 	if not sys.platform=='win32' or not cam_params['cameraMake'] == 'basler':
 		dispQueue.append('STOP')
 	stopWriteQueue.append('STOP')
+
 
 def SaveMetadata(cam_params, grabdata):
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
@@ -183,14 +221,11 @@ def SaveMetadata(cam_params, grabdata):
 	except Exception as e:
 		logging.error('Caught exception: {}'.format(e))
 
-def CloseSystems(params):
+
+def CloseSystems(systems, params):
 	print('Closing systems...')
 	makes = GetMakeList(params)
-	cam_params = {}
 	for m in range(len(makes)):
-		cam_params["cameraMake"] = makes[m]
-		system = params["systems"][makes[m]]["system"]
-		device_list = params["systems"][makes[m]]["deviceList"]
-		cam = ImportCam(cam_params)
-		cam.CloseSystem(system, device_list)
+		cam = ImportCam(makes[m])
+		cam.CloseSystem(systems[makes[m]]["system"], systems[makes[m]]["deviceList"])
 	print('Exiting campy...')

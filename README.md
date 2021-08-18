@@ -66,7 +66,7 @@ campy-acquire ./configs/config.yaml
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
 ## Authors
-Written by Kyle Severson, Diego Aldarondo, and Iris Odstrcil (2019-2021).
+Written by Kyle Severson with contributions from Diego Aldarondo and Iris Odstrcil (2019-2021).
 
 ## Credits
 Special thanks to Tim Dunn, David Hildebrand, Vincent Prevosto, Manuel Levy, and Paul Thompson for helpful comments.

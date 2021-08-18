@@ -16,17 +16,26 @@ def LoadSystem(params):
 
 	return params["cameraMake"]
 
+
 def GetDeviceList(system):
 
 	return system
+
 
 def LoadDevice(cam_params):
 
 	return cam_params["device"]
 
+
 def GetSerialNumber(device):
 
 	return device
+
+
+def GetModelName(camera):
+
+	return "Emulated_Camera"
+
 
 def OpenCamera(cam_params, device):
 	# Open video reader for emulation
@@ -42,25 +51,31 @@ def OpenCamera(cam_params, device):
 	print("Opened {} emulation.".format(cam_params["cameraName"]))
 	return camera, cam_params
 
+
 def LoadSettings(cam_params, camera):
 
 	return cam_params
+
 
 def StartGrabbing(camera):
 
 	return True
 
+
 def GrabFrame(camera, frameNumber):
 
 	return camera.get_data(frameNumber)
 
-def GetImageArray(grabResult, cam_params):
+
+def GetImageArray(grabResult):
 
 	return grabResult
 
-def GetTimeStamp(grabResult, camera):
+
+def GetTimeStamp(grabResult):
 
 	return time.perf_counter()
+
 
 def DisplayImage(cam_params, dispQueue, grabResult):
 	# Downsample image
@@ -69,14 +84,17 @@ def DisplayImage(cam_params, dispQueue, grabResult):
 	# Send to display queue
 	dispQueue.append(img)
 
+
 def ReleaseFrame(grabResult):
 
 	del grabResult
+
 
 def CloseCamera(cam_params, camera):
 	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
 	# Close camera after acquisition stops
 	del camera
+
 
 def CloseSystem(system, device_list):
 	del system

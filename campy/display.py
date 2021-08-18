@@ -1,16 +1,15 @@
 """
 
 """
-import sys
-import time
-import logging
+import sys, time, logging, warnings
 import numpy as np
-
 import matplotlib as mpl
-mpl.use('Qt5Agg') # disregard qtapp warning...
+warnings.filterwarnings("ignore")
+mpl.use('Qt5Agg') # ignore qtapp warning...
 import matplotlib.pyplot as plt
 
-def draw_figure(num):
+
+def DrawFigure(num):
 	mpl.rcParams['toolbar'] = 'None' 
 
 	figure = plt.figure(num)
@@ -28,14 +27,15 @@ def draw_figure(num):
 
 	return figure, imageWindow
 
+
 def DisplayFrames(cam_params, dispQueue):
 	n_cam = cam_params['n_cam']
 	
 	if sys.platform == "win32" and cam_params['cameraMake'] == 'basler':
-		# Pylon image window is handled by cameras.basler.cam
+		# Display on Basler cameras uses the Pylon image window handled by cameras/basler.py
 		pass
 	else:
-		figure, imageWindow = draw_figure(n_cam+1)
+		figure, imageWindow = DrawFigure(n_cam+1)
 		while(True):
 			try:
 				if dispQueue:
@@ -45,7 +45,8 @@ def DisplayFrames(cam_params, dispQueue):
 						figure.canvas.draw()
 						figure.canvas.flush_events()
 					except Exception as e:
-						logging.error('Caught exception: {}'.format(e))
+						# logging.error('Caught exception at display.py DisplayFrames: {}'.format(e))
+						pass
 				else:
 					time.sleep(0.01)
 			except KeyboardInterrupt:

@@ -1,0 +1,29 @@
+# This beginner-level config uses the CPU (gpuID: -1) to compress video
+# using ffmpeg's X264 codec
+
+# Recording parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 80
+recTimeInSec: 30
+
+# Camera parameters
+numCams: 1
+cameraMake: "flir"
+frameWidth: 1280
+frameHeight: 1024
+
+# Flir settings
+cameraTrigger: "None" # "Line3"
+bufferSize: 100
+cameraExposureTimeInUs: 1500
+cameraGain: 1
+disableGamma: True
+
+# Compression parameters
+gpuID: -1
+pixelFormatInput: "rgb24"
+pixelFormatOutput: "rgb0"
+
+# Display parameters
+displayFrameRate: 10
