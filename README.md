@@ -56,7 +56,7 @@ pip install -e .
 ```
 campy-acquire --help
 ```
-- If using Python serial triggering, upload Arduino .iso file (in campy/triggers folder) to open serial COM.
+- If using Python serial triggering, upload Arduino .ino file (in campy/triggers folder) to open serial COM.
 - To start your recording:
 ```
 campy-acquire ./configs/config.yaml
