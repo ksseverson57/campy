@@ -22,12 +22,6 @@ conda activate campy
   ```
   pip install pypylon
   ```
-  - Alternatively, manually install pypylon (Basler's python wrappers for their pylon camera software suite):
-  Download binary wheel from the [releases](https://github.com/Basler/pypylon/releases) page.
-  ```
-  pip3 install <wheel>
-  ```
-
 - If using FLIR cameras:
   - Download and install Spinnaker SDK and SpinView software from FLIR's website: 
     https://www.flir.com/support-center/iis/machine-vision/downloads/spinnaker-sdk-and-firmware-download/
@@ -50,19 +44,40 @@ pip install -e .
 ```
 
 ## Usage
+
+### Configuration
 - For Basler cameras, use the Pylon Viewer to save your '.pfs' camera settings file. Examples are included in campy/cameras/basler/settings.
 - Edit the config.yaml file to fit your system and recording configuration.
+- Several example config files are located in campy/configs.
 - For help setting config parameters:
 ```
 campy-acquire --help
 ```
-- If using Python serial triggering, upload Arduino .ino file (in campy/triggers folder) to open serial COM.
-- To start your recording:
+
+### Camera Triggering
+Campy's trigger module supports Arduino and Teensy microcontrollers:
+1. Download Arduino IDE (https://www.arduino.cc/en/software). Teensyduino
+2. Connect your microcontroller and note its port number (e.g. Device Manager in Windows "COM3")
+3. In your config.yaml, configure:
 ```
-campy-acquire ./configs/config.yaml
+startArduino: True 
+digitalPins: [<pin IDs>] # e.g. [0,1,2]
+serialPort: "COMx" # e.g. "COM3"
 ```
-- If using external camera triggers, campy will wait until triggers start.
-- Press Ctrl^C to end recording before allotted recording time.
+4. Open and upload "trigger.ino" file (in campy/trigger folder) to your board. Make sure serial monitor is closed while using pyserial connection.
+5. Campy will synchronously trigger the cameras once acquisition begins.
+
+### Start Recording:
+```
+campy-acquire ./configs/campy_config.yaml
+```
+
+### Stop Recording:
+- Campy will stop automatically after set recording time (e.g. 1 hour):
+```
+recTimeInSeconds: 3600
+```
+- To manually end, press Ctrl^C. Wait until campy exits.
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
 ## Authors
