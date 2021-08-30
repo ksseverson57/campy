@@ -56,6 +56,7 @@ def DefaultParams():
 	params["triggerController"] = "arduino"
 	params["startArduino"] = False
 	params["serialPort"] = "COM3"
+	params["digitalPins"] = [0,1,2,3,4,5,6]
 
 	return params
 
@@ -136,6 +137,8 @@ def OptParams(cam_params):
 		if type(cam_params[key]) is list:
 			if len(cam_params[key]) == cam_params["numCams"]:
 				cam_params[key] = cam_params[key][cam_params["n_cam"]]
+			elif key == "digitalPins":
+				continue
 			else:
 				logging.warning("{} size mismatch with numCams. Using list idx {}."\
 						.format(key,cam_params["n_cam"]))
@@ -404,6 +407,12 @@ def ParseClargs(parser):
 		dest="serialPort",
 		type=ast.literal_eval,
 		help="Serial port for communicating with Arduino.",
+	)
+	parser.add_argument(
+		"--digitalPins",
+		dest="digitalPins",
+		type=int,
+		help="Digital pins on microcontroller board for sending TTL camera triggers.",
 	)
 
 	return parser.parse_args()
