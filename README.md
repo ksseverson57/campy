@@ -14,14 +14,23 @@
 ```
 conda create -n campy python=3.7 imageio-ffmpeg matplotlib -c conda-forge
 conda activate campy
+pip install -U setuptools
 ```
 3. Install camera software
 - If using Basler cameras, install Pylon software:
   - Install Basler Pylon with Developer options
   - Install pypylon:
+  Windows:
   ```
   pip install pypylon
   ```
+  Linux:
+  ```
+  conda install swig
+  git clone https://github.com/basler/pypylon.git
+  python ./pypylon/setup.py install
+  ```
+  
 - If using FLIR cameras:
   - Download and install Spinnaker SDK and SpinView software from FLIR's website: 
     https://www.flir.com/support-center/iis/machine-vision/downloads/spinnaker-sdk-and-firmware-download/
@@ -34,11 +43,7 @@ conda activate campy
 ```
 git clone https://github.com/ksseverson57/campy.git
 ```
-5. Update setuptools:
-```
-pip install -U setuptools
-```
-6. Finally, install campy and its dependencies (see setup.py) by navigating to campy folder:
+5. Finally, install campy and its dependencies (see setup.py) by navigating to campy folder:
 ```
 pip install -e .
 ```
@@ -57,12 +62,12 @@ campy-acquire --help
 ### Camera Triggering
 Campy's trigger module supports Arduino and Teensy microcontrollers:
 1. Download Arduino IDE (https://www.arduino.cc/en/software). If using Teensy, install Teensyduino (https://www.pjrc.com/teensy/teensyduino.html).
-2. Connect your microcontroller and note its port number (e.g. Device Manager in Windows "COM3").
+2. Connect your microcontroller and note its port number (e.g. "COM3" on Windows or "/dev/ttyACM0" on Linux).
 3. In your config.yaml, configure:
 ```
 startArduino: True 
 digitalPins: [<pin IDs>] # e.g. [0,1,2]
-serialPort: "COMx" # e.g. "COM3"
+serialPort: "<port>" # e.g. "COM3" or "/dev/ttyACM0"
 ```
 4. Open and upload "trigger.ino" file (in campy/trigger folder) to your board. Make sure serial monitor is closed while using pyserial connection.
 5. Campy will synchronously trigger the cameras once acquisition begins.
@@ -79,6 +84,44 @@ recTimeInSeconds: 3600
 ```
 - To manually end, press Ctrl^C. Wait until campy exits.
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
+
+### Helpful tips
+- To debug broken pipe error, include this in config.yaml:
+```
+ffmpegLogLevel: "warning"
+```
+- Use the command "ffmpeg" to check enabled packages
+- On Linux, you may need to compile your own ffmpeg binary to enable encoders:
+- Nvidia:
+```
+git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+```
+- Intel:
+```
+sudo apt-get install libva-dev libmfx-dev libx264-dev libx264-dev libnuma-dev
+```
+- AMD:
+```
+git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+sudo cp -r ./AMF/amf/public/include/core /usr/include/AMF
+sudo cp -r ./AMF/amf/public/include/components /usr/include/AMF
+```
+- Compile ffmpeg:
+```
+git clone https://git.ffmpeg.org/ffmpeg.git
+cd ffmpeg
+sudo ./configure \
+--enable-cuda --enable-cuvid --enable-nvdec --enable-nvenc --enable-nonfree --enable-libnpp \
+--extra-cflags=-I/usr/local/cuda/include --extra-ldflags=-L/usr/local/cuda/lib64 \
+--enable-gpl --enable-libx264 --enable-libx265 --enable-libmfx \
+--enable-amf
+sudo make -j -s
+sudo cp -r ./ffmpeg /usr/bin
+```
+- Include in config.yaml:
+```
+ffmpegPath: "/usr/bin/ffmpeg"
+```
 
 ## Authors
 Written by Kyle Severson with contributions from Diego Aldarondo and Iris Odstrcil (2019-2021).
