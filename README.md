@@ -56,8 +56,8 @@ campy-acquire --help
 
 ### Camera Triggering
 Campy's trigger module supports Arduino and Teensy microcontrollers:
-1. Download Arduino IDE (https://www.arduino.cc/en/software). Teensyduino
-2. Connect your microcontroller and note its port number (e.g. Device Manager in Windows "COM3")
+1. Download Arduino IDE (https://www.arduino.cc/en/software). If using Teensy, install Teensyduino (https://www.pjrc.com/teensy/teensyduino.html).
+2. Connect your microcontroller and note its port number (e.g. Device Manager in Windows "COM3").
 3. In your config.yaml, configure:
 ```
 startArduino: True 
