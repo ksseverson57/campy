@@ -21,7 +21,8 @@ from collections import deque
 import multiprocessing as mp
 from campy import writer, display, configurator
 from campy.trigger import trigger
-from campy.cameras import unicam 
+from campy.cameras import unicam
+from campy.utils.utils import HandleKeyboardInterrupt
 
 def OpenSystems():
 	# Configure parameters
@@ -71,11 +72,10 @@ def AcquireOneCamera(n_cam):
 
 
 def Main():
-	try:
-		n = params["numCams"]
-		mp.get_context("spawn").Pool(n).map_async(AcquireOneCamera,range(n)).get()
-	except KeyboardInterrupt: 
-		pass
+	with HandleKeyboardInterrupt():
+		# Acquire cameras in parallel with Windows- and Linux-compatible pool
+		p = mp.get_context("spawn").Pool(params["numCams"])
+		p.map_async(AcquireOneCamera,range(params["numCams"])).get()
 
 	CloseSystems(systems, params)
 
