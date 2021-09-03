@@ -65,7 +65,8 @@ def OpenWriter(cam_params, queue):
 							"-bf:v", "0",
 							"-vsync", "0",
 							"-2pass", "0",
-							"-gpu", gpuID,]
+							"-gpu", gpuID,
+							]
 				if cam_params["codec"] == "h264":
 					codec = "h264_nvenc"
 				elif cam_params["codec"] == "h265":
@@ -157,9 +158,9 @@ def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 				# Otherwise continue writing
 				time.sleep(0.01)
 
-		# Close up...
-		print("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
-		writer.close()
-		time.sleep(1)
+	# Close up...
+	print("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
+	time.sleep(1)
+	writer.close()
     
 
