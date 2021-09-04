@@ -18,7 +18,8 @@ def DefaultParams():
 	params["videoFolder"] = "./test"
 	params["videoFilename"] = "0.mp4"
 	params["frameRate"] = 100
-	params["recTimeInSec"] = 10
+	params["recTimeInSec"] = 60^2*24*21
+	params["recChunkLengthInSeconds"] = 0
 
 	# Camera default parameters
 	params["cameraMake"] = "basler"
@@ -33,7 +34,7 @@ def DefaultParams():
 	params["bufferMode"] = "OldestFirst"
 	params["bufferSize"] = 100
 	params["cameraExposureTimeInUs"] = 1500
-	params["cameraGain"] = 1
+	params["cameraGain"] = 0
 	params["disableGamma"] = True
 
 	# Compression default parameters
@@ -367,6 +368,13 @@ def ParseClargs(parser):
 		type=ast.literal_eval,
 		help="Compression preset (e.g. 'slow', 'fast', 'veryfast'). \
 				Incorrect settings may break the pipe. Test with ffmpegLogLevel 'warning' or 'info'.",
+	)
+	parser.add_argument(
+		"--recChunkLengthInSeconds",
+		dest="recChunkLengthInSeconds",
+		type=int,
+		help="Parameter to pass to ffmpeg's -segment_time which writes out multiple videos. \
+			 This can be helpful when displaying is unreasable or splitting files for storage and processing.",
 	)
 
 	# Display and CLI feedback arguments

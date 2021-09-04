@@ -105,6 +105,8 @@ def OpenWriter(cam_params, queue):
 					codec = "h264_qsv"
 				elif cam_params["codec"] == "h265":
 					codec = "hevc_qsv"
+		if int(cam_params['recChunkLengthInSeconds']) != 0:
+			gpu_params.extend(['-f', 'segment','-segment_time', str(cam_params['recChunkLengthInSeconds'])])
 
 	except Exception as e:
 		logging.error("Caught exception at writer.py OpenWriter: {}".format(e))
