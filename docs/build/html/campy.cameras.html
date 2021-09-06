@@ -1,0 +1,693 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>campy.cameras package &mdash; campy 2.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> campy
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">campy.cameras package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-campy.cameras.basler">campy.cameras.basler module</a></li>
+<li><a class="reference internal" href="#module-campy.cameras.emu">campy.cameras.emu module</a></li>
+<li><a class="reference internal" href="#module-campy.cameras.flir">campy.cameras.flir module</a></li>
+<li><a class="reference internal" href="#module-campy.cameras.unicam">campy.cameras.unicam module</a></li>
+<li><a class="reference internal" href="#module-campy.cameras">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">campy</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>campy.cameras package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/campy.cameras.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="campy-cameras-package">
+<h1>campy.cameras package<a class="headerlink" href="#campy-cameras-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-campy.cameras.basler">
+<span id="campy-cameras-basler-module"></span><h2>campy.cameras.basler module<a class="headerlink" href="#module-campy.cameras.basler" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.CloseCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">CloseCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.CloseCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.CloseSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">CloseSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.CloseSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.DisplayImage">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">DisplayImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.DisplayImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GetDeviceList">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GetDeviceList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GetDeviceList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GetImageArray">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GetImageArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GetImageArray" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GetModelName">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GetModelName</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GetModelName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GetSerialNumber">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GetSerialNumber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GetSerialNumber" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GetTimeStamp">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GetTimeStamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GetTimeStamp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.GrabFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">GrabFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frameNumber</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.GrabFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.LoadDevice">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">LoadDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">systems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.LoadDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.LoadSettings">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">LoadSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.LoadSettings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.LoadSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">LoadSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.LoadSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.OpenCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">OpenCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.OpenCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.OpenPylonImageWindow">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">OpenPylonImageWindow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.OpenPylonImageWindow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.ReleaseFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">ReleaseFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.ReleaseFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.basler.StartGrabbing">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.basler.</span></span><span class="sig-name descname"><span class="pre">StartGrabbing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.basler.StartGrabbing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-campy.cameras.emu">
+<span id="campy-cameras-emu-module"></span><h2>campy.cameras.emu module<a class="headerlink" href="#module-campy.cameras.emu" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.CloseCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">CloseCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.CloseCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.CloseSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">CloseSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.CloseSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.DisplayImage">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">DisplayImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.DisplayImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GetDeviceList">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GetDeviceList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GetDeviceList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GetImageArray">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GetImageArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GetImageArray" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GetModelName">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GetModelName</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GetModelName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GetSerialNumber">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GetSerialNumber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GetSerialNumber" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GetTimeStamp">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GetTimeStamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GetTimeStamp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.GrabFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">GrabFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frameNumber</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.GrabFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.LoadDevice">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">LoadDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.LoadDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.LoadSettings">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">LoadSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.LoadSettings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.LoadSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">LoadSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.LoadSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.OpenCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">OpenCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.OpenCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.ReleaseFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">ReleaseFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.ReleaseFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.emu.StartGrabbing">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.emu.</span></span><span class="sig-name descname"><span class="pre">StartGrabbing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.emu.StartGrabbing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-campy.cameras.flir">
+<span id="campy-cameras-flir-module"></span><h2>campy.cameras.flir module<a class="headerlink" href="#module-campy.cameras.flir" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.CloseCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">CloseCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.CloseCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.CloseSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">CloseSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.CloseSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureBuffer">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the camera’s frame buffer settings.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureChunkData">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureChunkData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureChunkData" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the camera to add chunk data to each image. It does
+this by enabling each type of chunk data before enabling chunk data mode.
+When chunk data is turned on, the data is made available in both the nodemap
+and each image.
+:param nodemap: Transport layer device nodemap.
+:type nodemap: INodeMap
+:return: True if successful, False otherwise
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureCustomImageSettings">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureCustomImageSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureCustomImageSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures a number of settings on the camera including offsets X and Y, width,
+height, and pixel format. These settings must be applied before BeginAcquisition()
+is called; otherwise, they will be read only. Also, it is important to note that
+settings are applied immediately. This means if you plan to reduce the width and
+move the x offset accordingly, you need to apply such changes in the appropriate order.
+:param nodemap: GenICam nodemap.
+:type nodemap: INodeMap
+:return: True if successful, False otherwise.
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureExposure">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureExposure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureExposure" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures a custom exposure time. Automatic exposure is turned off in order to allow for the
+customization, and then the custom setting is applied.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">param cam</dt>
+<dd class="field-odd"><p>Camera to configure exposure for.</p>
+</dd>
+<dt class="field-even">type cam</dt>
+<dd class="field-even"><p>CameraPtr</p>
+</dd>
+<dt class="field-odd">param exposure_time</dt>
+<dd class="field-odd"><p>exposure time in microseconds</p>
+</dd>
+<dt class="field-even">type exposure_time</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>True if successful, False otherwise.</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureFrameHeight">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureFrameHeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureFrameHeight" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the frame height to be captured in the region of interest.
+Value is available to the user in the config.yaml:
+frameHeight: X
+Y offset is limited and centered automatically.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureFrameWidth">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureFrameWidth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureFrameWidth" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the frame width to be captured in the region of interest.
+Value is available to the user in the config.yaml:
+frameWidth: X
+X offset is limited and centered automatically.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureGain">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureGain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureGain" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the camera gain.
+:param cam: Camera to acquire images from.
+:type cam: CameraPtr
+:param gain: gain in dB
+:type gain: float
+:return: True if successful, False otherwise.
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureGamma">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureGamma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureGamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function disables the gamma correction.
+:param cam: Camera to disable gamma correction.
+:type cam: CameraPtr</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigurePixelFormat">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigurePixelFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigurePixelFormat" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the camera pixel format.
+:param cam: Camera to acquire images from.
+:type cam: CameraPtr
+:param pixelFormat: string
+:type gain: str
+:return: True if successful, False otherwise.
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ConfigureTrigger">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ConfigureTrigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ConfigureTrigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function configures the camera to use a trigger. First, trigger mode is
+ensured to be off in order to select the trigger source. Trigger mode is
+then enabled, which has the camera capture only a single image upon the
+execution of the chosen trigger.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">param cam</dt>
+<dd class="field-odd"><p>Camera to configure trigger for.</p>
+</dd>
+<dt class="field-even">type cam</dt>
+<dd class="field-even"><p>CameraPtr</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>True if successful, False otherwise.</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.DisplayImage">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">DisplayImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.DisplayImage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetDeviceList">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetDeviceList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetDeviceList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetFrameID">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetFrameID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chunkData</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetFrameID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetImageArray">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetImageArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetImageArray" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetModelName">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetModelName</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetModelName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetSerialNumber">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetSerialNumber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetSerialNumber" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GetTimeStamp">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GetTimeStamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GetTimeStamp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.GrabFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">GrabFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frameNumber</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.GrabFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="campy.cameras.flir.ImageNotCompleteException">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ImageNotCompleteException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ImageNotCompleteException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised for errors in the input.
+.. attribute:: expression – input expression in which the error occurred</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">message</span> <span class="pre">--</span> <span class="pre">explanation</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">error</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.LoadDevice">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">LoadDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">systems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.LoadDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.LoadSettings">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">LoadSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.LoadSettings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.LoadSystem">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">LoadSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.LoadSystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.OpenCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">OpenCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.OpenCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.PrintDeviceInfo">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">PrintDeviceInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodemap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.PrintDeviceInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function prints the device information of the camera from the transport
+layer; please see NodeMapInfo example for more in-depth comments on printing
+device information from the nodemap.
+:param nodemap: Transport layer device nodemap.
+:param cam_num: Camera number.
+:type nodemap: INodeMap
+:type cam_num: int
+:returns: True if successful, False otherwise.
+:rtype: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.ReleaseFrame">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">ReleaseFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabResult</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.ReleaseFrame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.flir.StartGrabbing">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.flir.</span></span><span class="sig-name descname"><span class="pre">StartGrabbing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.flir.StartGrabbing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-campy.cameras.unicam">
+<span id="campy-cameras-unicam-module"></span><h2>campy.cameras.unicam module<a class="headerlink" href="#module-campy.cameras.unicam" title="Permalink to this headline">¶</a></h2>
+<p>Unicam unifies camera APIs with common syntax to simplify multi-camera acquisition and
+reduce redundancy in campy code.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.CloseSystems">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">CloseSystems</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">systems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.CloseSystems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.CountFPS">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">CountFPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grabdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frameNumber</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeStamp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.CountFPS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.GetDeviceList">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">GetDeviceList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">systems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.GetDeviceList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.GetMakeList">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">GetMakeList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.GetMakeList" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.GrabData">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">GrabData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.GrabData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.GrabFrames">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">GrabFrames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writeQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopReadQueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopWriteQueue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.GrabFrames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.ImportCam">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">ImportCam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">make</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.ImportCam" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.LoadDevice">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">LoadDevice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">systems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.LoadDevice" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.LoadSystems">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">LoadSystems</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.LoadSystems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.OpenCamera">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">OpenCamera</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopWriteQueue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.OpenCamera" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.SaveMetadata">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">SaveMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grabdata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.SaveMetadata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="campy.cameras.unicam.StartGrabbing">
+<span class="sig-prename descclassname"><span class="pre">campy.cameras.unicam.</span></span><span class="sig-name descname"><span class="pre">StartGrabbing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">camera</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#campy.cameras.unicam.StartGrabbing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-campy.cameras">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-campy.cameras" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, campy devs.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
