@@ -11,7 +11,6 @@ campy.utils.chunkFiles module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.utils.saveChunks module
 -----------------------------
@@ -20,7 +19,6 @@ campy.utils.saveChunks module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.utils.utils module
 ------------------------
@@ -29,7 +27,6 @@ campy.utils.utils module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.utils.view\_metadata module
 ---------------------------------
@@ -38,7 +35,6 @@ campy.utils.view\_metadata module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 Module contents
 ---------------
@@ -47,4 +43,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:

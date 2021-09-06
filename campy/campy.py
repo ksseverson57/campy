@@ -45,6 +45,13 @@ def CloseSystems(systems, params):
 
 
 def AcquireOneCamera(n_cam):
+    """Initializes camera n. This includes starting threads for grabbing, writing, and displaying frames.
+    Note that this function is run for each camera so you can end up using many threads as you scale.
+
+    :param n_cam: number of camera to initialize
+    :type n_cam: int
+    """
+
     # Initialize param dictionary for this camera stream
     cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
 
@@ -55,9 +62,10 @@ def AcquireOneCamera(n_cam):
     stopWriteQueue = deque([], 1)
 
     # Start image window display thread
-    threading.Thread(
-        target=display.DisplayFrames, daemon=True, args=(cam_params, dispQueue,),
-    ).start()
+    if params["display"] != False:
+        threading.Thread(
+            target=display.DisplayFrames, daemon=True, args=(cam_params, dispQueue,),
+        ).start()
 
     # Start grabbing frames ("producer" thread)
     threading.Thread(
@@ -80,4 +88,7 @@ def Main():
 
 
 # Open systems, creates global 'systems' and 'params' variables
-systems, params = OpenSystems()
+try:
+    systems, params = OpenSystems()
+except:
+    exit

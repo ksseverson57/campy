@@ -11,7 +11,6 @@ campy.trigger.arduino module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.trigger.trigger module
 ----------------------------
@@ -20,7 +19,6 @@ campy.trigger.trigger module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 Module contents
 ---------------
@@ -29,4 +27,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:

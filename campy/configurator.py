@@ -52,6 +52,7 @@ def DefaultParams():
     params["chunkLengthInSec"] = 5
     params["displayFrameRate"] = 10
     params["displayDownsample"] = 2
+    params["display"] = True
 
     # Trigger parameters
     params["triggerController"] = "arduino"
@@ -395,6 +396,12 @@ def ParseClargs(parser):
         dest="displayDownsample",
         type=int,
         help="Downsampling factor for displaying images.",
+    )
+    parser.add_argument(
+        "--display",
+        dest="display",
+        type=bool,
+        help="Flag to determine if we want to display as we record -- primarily useful for debugging.",
     )
 
     # Microcontroller triggering arguments

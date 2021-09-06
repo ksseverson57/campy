@@ -11,7 +11,6 @@ campy.cameras.basler module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.cameras.emu module
 ------------------------
@@ -20,7 +19,6 @@ campy.cameras.emu module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.cameras.flir module
 -------------------------
@@ -29,7 +27,6 @@ campy.cameras.flir module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.cameras.unicam module
 ---------------------------
@@ -38,7 +35,6 @@ campy.cameras.unicam module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 Module contents
 ---------------
@@ -47,4 +43,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:

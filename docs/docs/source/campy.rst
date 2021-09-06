@@ -21,7 +21,6 @@ campy.campy module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.configurator module
 -------------------------
@@ -30,7 +29,6 @@ campy.configurator module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.display module
 --------------------
@@ -39,7 +37,6 @@ campy.display module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 campy.writer module
 -------------------
@@ -48,7 +45,6 @@ campy.writer module
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
 
 Module contents
 ---------------
@@ -57,4 +53,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-   :private-members:
