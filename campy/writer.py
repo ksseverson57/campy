@@ -5,7 +5,7 @@ import os, sys, time, logging
 from campy.utils.utils import QueueKeyboardInterrupt
 
 
-def OpenWriter(cam_params, queue):
+def OpenWriter(cam_params, queue): 
     try:
         writing = False
         folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
