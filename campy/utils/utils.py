@@ -45,7 +45,7 @@ class HandleKeyboardInterrupt:
 				
 	def handler(self, sig, frame):
 		self.signal_received = (sig, frame)
-		logging.error('SIGINT received. Delaying KeyboardInterrupt.')
+		print('SIGINT received. KeyboardInterrupt has been handled.', flush=True)
 	
 	def __exit__(self, type, value, traceback):
 		pass
