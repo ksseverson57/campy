@@ -5,14 +5,14 @@
 
 // User-set parameters
 uint32_t baudrate = 115200;
+uint32_t time_scale = 1e6; // 1e3 for micros; 1e6 for micros
 
 // Global variables
 int DIG_out_pins[100];
 int n_sync;
 float frame_rate_in = 0;
 float frame_rate_out = 0;
-unsigned long time_zero, frame_period, frame_end;
-int32_t frame_count = 0;
+unsigned long frame_start, frame_period;
 
 
 void setup( void ) {
@@ -36,7 +36,7 @@ void setup( void ) {
 
 int SetDigPins() {
   Serial.println("");
-  Serial.print("How many digital pins? ");
+  Serial.print("Enter string, separated by commas: # dig pins, dig pins, frame rate:");
 
   // Receive Dig Pin array size from Python or Serial Monitor
   while (Serial.available() == 0) {}
@@ -44,7 +44,6 @@ int SetDigPins() {
 
   // Print result and initialize array
   Serial.print(num_pins);
-//  FlushSerialBuffer();
   
   for ( int i = 0; i < num_pins; i++ ) {
     Serial.println("");
@@ -55,7 +54,7 @@ int SetDigPins() {
     int input = int( (unsigned int) Serial.parseFloat());
     Serial.print(input);
 
-    // Append pin number (+1) to array
+    // Append pin number to array
     DIG_out_pins[i] = input;
   }
 
@@ -102,7 +101,7 @@ unsigned long SetFramePeriod( unsigned long fr ) {
     frame_period = 0xFFFFFFFF;
   }
   else {
-    frame_period = 1e6 / fr;
+    frame_period = time_scale / fr;
   }
 
   Serial.println("");
@@ -124,8 +123,8 @@ void FlushSerialBuffer() {
 void ResetTimer() {
   delay(4000);
   FlushSerialBuffer();
-  frame_count = 0;
-  time_zero = micros();
+//  frame_count = 0;
+  frame_start = micros();
 }
 
 
@@ -155,22 +154,21 @@ void loop( void ) {
     SetPinsLow();
     n_sync = SetDigPins();
     frame_rate_out = SetFrameRate();
-    frame_period = SetFramePeriod( frame_rate_out );
+    frame_period = SetFramePeriod(frame_rate_out);
     ResetTimer();
   }
 
   if (frame_rate_out > 0) {
-    SetPinsHigh();
-
-    frame_count = frame_count + 1;
-    frame_end = frame_period * frame_count;
-
-    // Wait until end of this pulse period
-    while ((micros() - time_zero) < frame_end - frame_period / 2) {}
-
     SetPinsLow();
 
+    // Wait until end of this pulse period
+    while (micros() - frame_start < frame_period / 2) {}
+
+    SetPinsHigh();
+
     // Wait until end of this frame period
-    while ((micros() - time_zero) < frame_end) {}
+    while (micros() - frame_start < frame_period) {}
+
+    frame_start = frame_start + frame_period;
   }
 }
