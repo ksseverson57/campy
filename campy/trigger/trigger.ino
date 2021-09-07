@@ -1,19 +1,18 @@
 // Camera Sync - TTL triggering with Teensy board
-// Inter-frame interval precision: ~ +/- 1.5 us
-// Inter-frame interval accuracy: ~ +40 ns
-// Synchronicity: ~ ? ns (not tested yet)
+// Inter-frame interval precision: ~ +/- 0.35 us
+// Inter-frame interval accuracy: ~0.0035%
+// Synchronicity: ~ 30 ns
 
 // User-set parameters
 uint32_t baudrate = 115200;
-uint32_t time_scale = 1e6; // 1e3 for micros; 1e6 for micros
 
 // Global variables
 int DIG_out_pins[100];
 int n_sync;
 float frame_rate_in = 0;
 float frame_rate_out = 0;
-unsigned long frame_start, frame_period;
-
+unsigned long frame_start, frame_period, time_zero;
+uint32_t frame_count = 0;
 
 void setup( void ) {
 
@@ -21,6 +20,9 @@ void setup( void ) {
   delay(500);
   Serial.print("Set baudrate to ");
   Serial.print(baudrate);
+
+  Serial.println("");
+  Serial.print("Enter comma-separated string in this order: # dig pins, dig pin IDs, frame rate:");
 
   // Set DigPins using Python or Serial Monitor input
   n_sync = SetDigPins();
@@ -31,33 +33,36 @@ void setup( void ) {
 
   // Wait for streams and cams to initialize
   ResetTimer(); 
+  
 }
 
 
 int SetDigPins() {
-  Serial.println("");
-  Serial.print("Enter string, separated by commas: # dig pins, dig pins, frame rate:");
-
+  
   // Receive Dig Pin array size from Python or Serial Monitor
   while (Serial.available() == 0) {}
   int num_pins = int( (unsigned int) Serial.parseFloat());
 
   // Print result and initialize array
+  Serial.println("");
+  Serial.print("Number of digital pins: ");
   Serial.print(num_pins);
   
+  Serial.println("");
+  Serial.print("Digital pins: ");
+  
   for ( int i = 0; i < num_pins; i++ ) {
-    Serial.println("");
-    Serial.print("Enter next digital pin as int: ");
-
-    // Receive digital pin
+    // Receive digital pin IDs
     while (Serial.available() == 0) {}
     int input = int( (unsigned int) Serial.parseFloat());
     Serial.print(input);
+    if (i+1 < num_pins) { Serial.print(","); }
 
     // Append pin number to array
     DIG_out_pins[i] = input;
   }
 
+  // Set digital pins to OUTPUT mode and to LOW voltage
   for ( int i = 0; i < num_pins; i++ ) {
     pinMode(DIG_out_pins[i], OUTPUT);
     digitalWrite(DIG_out_pins[i], LOW);
@@ -68,9 +73,6 @@ int SetDigPins() {
 
 
 unsigned long SetFrameRate() {
-  Serial.println("");
-  Serial.print("Enter your frame rate: ");
-
   // Wait to receive frame rate from Python or Serial Monitor...
   while (Serial.available() == 0) {}
   frame_rate_in = Serial.parseFloat();
@@ -95,13 +97,14 @@ unsigned long SetFrameRate() {
 
 
 unsigned long SetFramePeriod( unsigned long fr ) {
+  
   // Calculate frame period and pulse duration
   // Avoid divide-by-zero error
   if (fr == 0) {
     frame_period = 0xFFFFFFFF;
   }
   else {
-    frame_period = time_scale / fr;
+    frame_period = 1e6 / fr;
   }
 
   Serial.println("");
@@ -114,27 +117,34 @@ unsigned long SetFramePeriod( unsigned long fr ) {
 
 
 void FlushSerialBuffer() {
+  
   while (Serial.available() != 0) {
     Serial.parseFloat();
   }
+  
 }
 
 
 void ResetTimer() {
+  
   delay(4000);
   FlushSerialBuffer();
-//  frame_count = 0;
-  frame_start = micros();
+  frame_count = 0;
+  time_zero = frame_count * frame_period;
+  frame_start = micros() + time_zero;
+  
 }
 
 
 void SetPinsHigh() {
+  
   // Disable interrupts to synchronize TTLs
   noInterrupts();
   for ( int i = 0; i < n_sync; i++ ) {
     digitalWrite(DIG_out_pins[i], HIGH);
   }
   interrupts();
+  
 }
 
 
@@ -148,7 +158,13 @@ void SetPinsLow() {
 }
 
 
+unsigned long Timer() {
+  
+  return micros() + time_zero - frame_start;
+}
+
 void loop( void ) {
+  
   if (Serial.available())
   {
     SetPinsLow();
@@ -162,13 +178,14 @@ void loop( void ) {
     SetPinsLow();
 
     // Wait until end of this pulse period
-    while (micros() - frame_start < frame_period / 2) {}
+    while (Timer() < frame_period / 2) {}
 
     SetPinsHigh();
 
     // Wait until end of this frame period
-    while (micros() - frame_start < frame_period) {}
+    while (Timer() < frame_period) {}
 
     frame_start = frame_start + frame_period;
   }
+  
 }
