@@ -3,10 +3,10 @@
 - Features real-time hardware-accelerated video compression and debayering using FFmpeg.
 
 ## Hardware/software
-- (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
 - Basler and/or FLIR machine vision camera(s)
 - Windows or Linux PC
-- Arduino/Teensy microcontroller for syncing cameras
+- (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
+- (Optional) Arduino/Teensy microcontroller for syncing cameras
 
 ## Installation
 1. Update graphics drivers
@@ -70,7 +70,7 @@ digitalPins: [<pin IDs>] # e.g. [0,1,2]
 serialPort: "<port>" # e.g. "COM3" or "/dev/ttyACM0"
 ```
 4. Open and upload "trigger.ino" file (in campy/trigger folder) to your board. Make sure serial monitor is closed while using pyserial connection.
-5. Campy will synchronously trigger the cameras once acquisition begins.
+5. Campy will synchronously trigger the cameras once acquisition has initialized.
 
 ### Start Recording:
 ```
@@ -78,19 +78,20 @@ campy-acquire ./configs/campy_config.yaml
 ```
 
 ### Stop Recording:
-- Campy will stop automatically after set recording time (e.g. 1 hour):
+- Campy can be configured to stop automatically after set recording time (e.g. 1 hour):
 ```
 recTimeInSeconds: 3600
 ```
-- To manually end, press Ctrl^C. Wait until campy exits.
+- To manually end, press Ctrl^C. Wait until campy exits!
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
 ### Helpful tips
-- To debug broken pipe error, include this in config.yaml:
+- To debug broken ffmpeg pipe error, include this in config.yaml:
 ```
 ffmpegLogLevel: "warning"
 ```
-- Use the command "ffmpeg" to check enabled packages
+- Use the command "ffmpeg" to check enabled packages. Hardware encoder support must be enabled in your ffmpeg binary.
+- Windows ffmpeg binary installed by Anaconda should have hardware encoder support enabled by default.
 - On Linux, you may need to compile your own ffmpeg binary to enable encoders:
 - Nvidia:
 ```
@@ -98,7 +99,7 @@ git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 ```
 - Intel:
 ```
-sudo apt-get install libva-dev libmfx-dev libx264-dev libx264-dev libnuma-dev
+sudo apt-get install libva-dev libmfx-dev libx264-dev libx265-dev libnuma-dev
 ```
 - AMD:
 ```
