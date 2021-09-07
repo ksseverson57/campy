@@ -26,3 +26,4 @@ displayFrameRate: 10
 # Trigger parameters
 startArduino: True
 serialPort: "COM3"
+digitalPins: [0,1]
