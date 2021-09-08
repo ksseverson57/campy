@@ -6,7 +6,7 @@
 - Basler and/or FLIR machine vision camera(s)
 - Windows or Linux PC
 - (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- (Optional) Arduino/Teensy microcontroller for syncing cameras
+- (Optional) Arduino/Teensy microcontroller for syncing cameras and other recordings
 
 ## Installation
 1. Update graphics drivers
@@ -96,6 +96,7 @@ ffmpegLogLevel: "warning"
 - Nvidia:
 ```
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+cd nv-codec-headers && sudo make install && cd ..
 ```
 - Intel:
 ```
@@ -112,7 +113,7 @@ sudo cp -r ./AMF/amf/public/include/components /usr/include/AMF
 git clone https://git.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 sudo ./configure \
---enable-cuda --enable-cuvid --enable-nvdec --enable-nvenc --enable-nonfree --enable-libnpp \
+--enable-cuda --enable-cuvid --enable-nvdec --enable-nvenc --enable-nonfree \
 --extra-cflags=-I/usr/local/cuda/include --extra-ldflags=-L/usr/local/cuda/lib64 \
 --enable-gpl --enable-libx264 --enable-libx265 --enable-libmfx \
 --enable-amf
