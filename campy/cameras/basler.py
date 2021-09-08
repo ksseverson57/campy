@@ -40,7 +40,7 @@ def OpenCamera(cam_params):
 	camera = pylon.InstantCamera(cam_params["camera"])
 	camera.Open()
 
-	# Load camera settings
+	# Load default camera settings
 	cam_params['cameraModel'] = GetModelName(camera)
 	cam_params = LoadSettings(cam_params, camera)
 
@@ -50,7 +50,13 @@ def OpenCamera(cam_params):
 def LoadSettings(cam_params, camera):
 	# Load settings from Pylon features file
 	pylon.FeaturePersistence.Load(cam_params['cameraSettings'], camera.GetNodeMap(), False) #Validation is false
-	camera.MaxNumBuffer = cam_params["bufferSize"] # bufferSize is 500 frames
+	camera.MaxNumBuffer = cam_params["bufferSize"] # default bufferSize is ~500 frames
+
+	# Manual override settings
+	if cam_params["cameraTrigger"] == "Software" or cam_params["cameraTrigger"] == "software":
+		camera.TriggerMode.SetValue('Off')
+		camera.AcquisitionFrameRateEnable.SetValue(True)
+		camera.AcquisitionFrameRate.SetValue(cam_params["frameRate"])
 	
 	# Get camera information and save to cam_params for metadata
 	cam_params['frameWidth'] = camera.Width.GetValue()
