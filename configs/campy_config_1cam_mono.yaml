@@ -11,7 +11,7 @@ recTimeInSec: 30
 # Camera parameters
 numCams: 1
 cameraMake: "basler"
-cameraSettings: "./campy/cameras/basler/mono8.pfs"
+cameraSettings: "./configs/mono8.pfs"
 frameWidth: 1152
 frameHeight: 1024
 
@@ -19,6 +19,7 @@ frameHeight: 1024
 gpuID: -1
 pixelFormatInput: "gray"
 pixelFormatOutput: "rgb0"
+# ffmpegPath: "/usr/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
 
 # Display parameters
 displayFrameRate: 10

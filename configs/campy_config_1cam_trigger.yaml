@@ -6,18 +6,20 @@ recTimeInSec: 30
 
 # Camera parameters
 cameraMake: "basler"
-cameraSettings: "./campy/cameras/basler/rgb24.pfs"
+cameraSettings: "./configs/rgb24.pfs"
 pixelFormatInput: "rgb24"
 pixelFormatOutput: "rgb0"
 frameWidth: 1152
 frameHeight: 1024
 
 # Compression parameters
-ffmpegLogLevel: "quiet"               # "quiet", "warning", "info"
 gpuID: 0                              
 gpuMake: "nvidia"                     # "nvidia", "amd", "intel"                  
 codec: "h264"                         # "h264", "h265", or user-defined video codec
 quality: 21                           # 0-55
+ffmpegLogLevel: "quiet"               # "quiet", "warning", "info"
+# ffmpegPath: "/usr/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
+
 
 # Display parameters
 chunkLengthInSec: 5
@@ -25,5 +27,5 @@ displayFrameRate: 10
 
 # Trigger parameters
 startArduino: True
-serialPort: "COM3"
-digitalPins: [0,1]
+serialPort: "COM3"                    # e.g. "COM3" Win; "/dev/ttyACM0" Linux
+digitalPins: [0]

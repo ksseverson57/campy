@@ -11,7 +11,7 @@ recTimeInSec: 30
 # Camera parameters
 numCams: 1
 cameraMake: "basler"
-cameraSettings: "./campy/cameras/basler/rgb24.pfs"
+cameraSettings: "./configs/rgb24.pfs"
 frameWidth: 1152
 frameHeight: 1024
 
@@ -20,6 +20,11 @@ gpuID: -1
 pixelFormatInput: "rgb24"
 pixelFormatOutput: "rgb0"
 quality: 17
+ffmpegLogLevel: "warning"
+# ffmpegPath: "/usr/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
 
 # Display parameters
 displayFrameRate: 10
+
+# Trigger parameters
+cameraTrigger: "software"

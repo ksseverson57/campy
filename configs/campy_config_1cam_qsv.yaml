@@ -13,7 +13,7 @@ recTimeInSec: 30
 # Camera parameters
 numCams: 1
 cameraMake: "basler"
-cameraSettings: "./campy/cameras/basler/rgb24.pfs"
+cameraSettings: "./configs/rgb24.pfs"
 frameWidth: 1152
 frameHeight: 1024
 
@@ -23,6 +23,7 @@ gpuMake: "intel"                # iGPU "Quick Sync"
 pixelFormatInput: "rgb24"       # "rgb24", "gray"
 pixelFormatOutput: "rgb0" 
 codec: "h264"                   # "h264", "h265"
+# ffmpegPath: "/usr/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
 
 # Display parameters
 displayFrameRate: 10
