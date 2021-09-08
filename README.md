@@ -51,7 +51,7 @@ pip install -e .
 ## Usage
 
 ### Configuration
-- For Basler cameras, use the Pylon Viewer to save your '.pfs' camera settings file. Examples are included in campy/cameras/basler/settings.
+- For Basler cameras, use the Pylon Viewer to configure and save your '.pfs' camera settings file. Examples are included in campy/configs.
 - Edit the config.yaml file to fit your system and recording configuration.
 - Several example config files are located in campy/configs.
 - For help setting config parameters:
