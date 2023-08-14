@@ -72,6 +72,11 @@ def GetImageArray(grabResult):
 	return grabResult
 
 
+def CopyImageArray(grabResult):
+
+	return grabResult
+
+
 def GetTimeStamp(grabResult):
 
 	return time.perf_counter()
