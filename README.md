@@ -1,8 +1,8 @@
 # This is an experimental branch currently under development
 # Preparing new release (2.0.0) coming September 2023
-- Added AV1 encoding support for better streaming quality per bit rate (see examples)
+- Added AV1 encoding support for better streaming quality per bit rate (see examples).
   Note: AV1 decoding may be slower than H264/265
-- Added constant bitrate (cbr) quality mode
+- Added constant bitrate (cbr) quality mode.
   With cbr, video files can be compressed more with minimal loss in visual quality
 - Integrated Basler pypylon zero-copy to reduce overhead
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user
