@@ -5,8 +5,8 @@ Outputs one MP4 video file and metadata files for each camera
 
 "campy" is the main console. 
 User inputs are loaded from config yaml file using a command line interface (CLI) 
-configurator parses the config arguments (and default params) into "params" dictionary.
-configurator assigns params to each camera stream in the "cam_params" dictionary.
+cli parses the config arguments (and default params) into "params" dictionary.
+cli assigns params to each camera stream in the "cam_params" dictionary.
 	* Camera index is set by "cameraSelection".
 	* If param is string, it is applied to all cameras.
 	* If param is list of strings, it is assigned to each camera, ordered by camera index.
@@ -19,14 +19,14 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator
+from campy import writer, display, cli
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt
 
 def OpenSystems():
 	# Configure parameters
-	params = configurator.ConfigureParams()
+	params = cli.ConfigureParams()
 
 	# Load Camera Systems and Devices
 	systems = unicam.LoadSystems(params)
@@ -45,11 +45,12 @@ def CloseSystems(systems, params):
 
 def AcquireOneCamera(n_cam):
 	# Initialize param dictionary for this camera stream
-	cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
+	cam_params = cli.ConfigureCamParams(systems, params, n_cam)
 
 	# Initialize queues for display, video writer, and stop messages
 	dispQueue = deque([], 2)
 	writeQueue = deque()
+	stopGrabQueue = deque([],1)
 	stopReadQueue = deque([],1)
 	stopWriteQueue = deque([],1)
 
@@ -64,11 +65,23 @@ def AcquireOneCamera(n_cam):
 	threading.Thread(
 		target = unicam.GrabFrames,
 		daemon = True,
-		args = (cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue,),
+		args = (
+			cam_params, 
+			writeQueue, 
+			dispQueue, 
+			stopGrabQueue, 
+			stopReadQueue, 
+			stopWriteQueue,
+			),
 		).start()
 
 	# Start video file writer (main "consumer" process)
-	writer.WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue)
+	writer.WriteFrames(
+		cam_params, 
+		writeQueue, 
+		stopGrabQueue,
+		stopReadQueue, 
+		stopWriteQueue)
 
 
 def Main():

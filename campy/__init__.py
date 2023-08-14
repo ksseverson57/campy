@@ -7,42 +7,43 @@ def CampyParams():
 	params = {}
 	# Recording default parameters
 	params["videoFolder"] = "./test"
-	params["frameRate"] = 100
-	params["recTimeInSec"] = 10
-	params["numCams"] = 3
-	params["cameraNames"] = ["Camera1","Camera2","Camera3"]
+	params["frameRate"] = 25
+	params["recTimeInSec"] = 30
+	params["numCams"] = 1
+	params["cameraNames"] = ["Camera1"]
 
 	# Camera default parameters
 	params["cameraMake"] = "basler"
-	params["cameraSettings"] = "./settings/acA1920-150uc_1152x1024p_100fps_trigger_RGB_p6.pfs"
+	params["cameraSettings"] = "./configs/calibration.pfs"
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
 
 	# Flir camera default parameters
 	params["bufferMode"] = "OldestFirst"
 	params["cameraExposureTimeInUs"] = 750
-	params["bufferSize"] = 100
+	params["bufferSize"] = 500
 	params["cameraGain"] = 1
 	params["disableGamma"] = True
 	params["cameraTrigger"] = "Line3"
 
 	# Compression default parameters
-	params["gpuID"] = [0,0,0]
-	params["pixelFormatInput"] = "rgb24" # "bayer_bggr8" "rgb24"
+	params["gpuID"] = "-1"
+	params["pixelFormatInput"] = "rgb24"
 	params["pixelFormatOutput"] = "rgb0"
-	params["codec"] = "h264"  
-	params["quality"] = "21"
+	params["codec"] = "h264"
+	params["quality"] = "10M"
+	params["qualityMode"] = None
 
 	# Display parameters
-	params["chunkLengthInSec"] = 30
+	params["chunkLengthInSec"] = 15
 	params["displayFrameRate"] = 10
-	params["displayDownsample"] = 2
+	params["displayDownsample"] = 4
 
 	# Trigger parameters
 	params["startArduino"] = 0
 	params["serialPort"] = "COM3"
 
 	# Other parameters
-	params["ffmpegPath"] = [] #["/home/usr/Documents/ffmpeg/ffmpeg"]
+	params["ffmpegPath"] = []
 
 	return params

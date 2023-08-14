@@ -1,6 +1,7 @@
 """
 """
-from imageio_ffmpeg import write_frames
+import subprocess as sp
+from imageio_ffmpeg import write_frames, get_ffmpeg_version
 import os, sys, time, logging
 from campy.utils.utils import QueueKeyboardInterrupt
 
@@ -9,7 +10,7 @@ def OpenWriter(cam_params, queue):
 		writing = False
 		folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
 		file_name = cam_params["videoFilename"]
-		full_file_name = os.path.join(folder_name, file_name)
+		full_file_name = os.path.normpath(os.path.join(folder_name, file_name))
 
 		if not os.path.isdir(folder_name):
 			os.makedirs(folder_name)
@@ -20,15 +21,27 @@ def OpenWriter(cam_params, queue):
 			cam_params["pixelFormatInput"] == "bayer_rggb8"
 
 		# Load encoding parameters from cam_params
-		pix_fmt_out = cam_params["pixelFormatOutput"]
-		codec = str(cam_params["codec"])
+		height = str(cam_params["frameHeight"])
+		width = str(cam_params["frameWidth"])
+		pix_fmt_out = str(cam_params["pixelFormatOutput"])
 		quality = str(cam_params["quality"])
+		codec = str(cam_params["codec"])
 		preset = str(cam_params["preset"])
 		frameRate = str(cam_params["frameRate"])
 		gpuID = str(cam_params["gpuID"])
+		g = str(int(cam_params["frameRate"]) * 5) # key-frame interval, every 5 seconds
+
+		# Switch between constant quality (if quality is an integer, e.g., 25 or "25") 
+		# and constant bitrate (if quality is a string with a character, e.g. "25M")
+		if cam_params["qualityMode"] is None and quality.isdigit():
+			quality_mode = "constqp"
+		elif cam_params["qualityMode"] is None and not quality.isdigit():
+			quality_mode = "cbr"
+		else:
+			quality_mode = cam_params["qualityMode"]
 
 		# Load defaults
-		gpu_params = []
+		gpu_params = None
 
 		# CPU compression
 		if cam_params["gpuID"] == -1:
@@ -47,30 +60,51 @@ def OpenWriter(cam_params, queue):
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
 				codec = "libx264"
-				gpu_params.append("-x264-params")
-				gpu_params.append("nal-hrd=cbr")
+				gpu_params.extend(["-x264-params", "nal-hrd=cbr"])
 			elif cam_params["codec"] == "h265":
 				codec = "libx265"
+			elif cam_params["codec"] == "av1":
+				codec = "libaom-av1"
 
 		# GPU compression
 		else:
 			# Nvidia GPU (NVENC) encoder optimized parameters
 			print("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
 			if cam_params["gpuMake"] == "nvidia":
-				if preset == "None":
+				if preset == None:
 					preset = "fast"
-				gpu_params = ["-r:v", frameRate, # important to play nice with vsync "0"
-							"-preset", preset, # set to "fast", "llhp", or "llhq" for h264 or hevc
-							"-qp", quality,
-							"-bf:v", "0",
-							"-vsync", "0",
-							"-2pass", "0",
-							"-gpu", gpuID,
-							]
+				gpu_params = [
+							"-preset",preset,
+							"-bf:v","0", # B-frame spacing "2" less intensive for encoding
+							"-g",g, # I-frame spacing
+							"-gpu",gpuID,
+							"-movflags","+faststart",
+							] 
+
+				if quality_mode == "cbr":
+					gpu_params.extend(["-b:v",quality, ]), # variable/avg bitrate
+				elif quality_mode == "constqp":
+					gpu_params.extend(["-qp",quality, ]), # constant quality
+				else:
+					quality_mode == "cbr"
+					quality = "10M"
+					gpu_params.extend(["-b:v",quality, ]), # avg bitrate
+					print("Could not set quality mode. \
+						Setting to default bit rate of 10M.")
+				gpu_params.extend(["-rc",quality_mode, ])
+				
 				if cam_params["codec"] == "h264":
 					codec = "h264_nvenc"
-				elif cam_params["codec"] == "h265":
+				if cam_params["codec"] == "h265" or cam_params["codec"] == "hevc":
 					codec = "hevc_nvenc"
+				elif cam_params["codec"] == "av1":
+					codec = "av1_nvenc"
+
+				if get_ffmpeg_version() == "4.2.2":
+					gpu_params.extend(["-vsync", "0"])
+					gpu_params.extend(["-r:v", frameRate])
+				else:
+					gpu_params.extend(["-fps_mode", "passthrough"])
 
 			# AMD GPU (AMF/VCE) encoder optimized parameters
 			elif cam_params["gpuMake"] == "amd":
@@ -81,9 +115,7 @@ def OpenWriter(cam_params, queue):
 							"-qp_i", quality,
 							"-qp_p", quality,
 							"-qp_b", quality,
-							"-bf:v", "0",
-							"-hwaccel", "auto",
-							"-hwaccel_device", gpuID,]
+							"-hwaccel_device", gpuID,] # "-hwaccel", "auto",
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "yuv420p"
 				if cam_params["codec"] == "h264":
@@ -135,32 +167,45 @@ def OpenWriter(cam_params, queue):
 			raise
 			break
 
-	# Initialize read queue object to signal interrupt
+	# Initialize read queue object to enable signal interrupt user control
 	readQueue = {}
 	readQueue["queue"] = queue
 	readQueue["message"] = "STOP"
 
 	return writer, writing, readQueue
 
-def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
+def WriteFrames(
+	cam_params, 
+	writeQueue, 
+	stopGrabQueue, 
+	stopReadQueue, 
+	stopWriteQueue
+):
 	# Start ffmpeg video writer 
-	writer, writing, readQueue = OpenWriter(cam_params, stopReadQueue)
+	writer, writing, readQueue = OpenWriter(cam_params, stopGrabQueue)
+	writeCount = int(0)
+	dropCount = int(0)
 
 	with QueueKeyboardInterrupt(readQueue):
 		# Write until interrupted and/or stop message received
 		while(writing):
 			if writeQueue:
-				writer.send(writeQueue.popleft())
+				try:
+					img = writeQueue.popleft()
+					writer.send(img)
+					writeCount += 1
+				except Exception as e:
+					dropCount += 1
 			else:
-				# Once queue is depleted and grabber stops, then stop writing
+				# Once queue is depleted and grabbing stops, stop writing
 				if stopWriteQueue:
+					stopReadQueue.append("STOP")
+					time.sleep(1)
+					print('{} wrote {} and dropped {} frames.'.format(
+						cam_params["cameraName"],
+						writeCount,
+						dropCount))
 					writing = False
+
 				# Otherwise continue writing
-				time.sleep(0.01)
-
-	# Close up...
-	print("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
-	time.sleep(1)
-	writer.close()
-    
-
+				time.sleep(0.001)
