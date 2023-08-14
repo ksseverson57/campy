@@ -185,8 +185,8 @@ def GrabFrames(
 					if frameNumber % grabdata["frameRatio"] == 0:
 						cam.DisplayImage(cam_params, dispQueue, grabResult)
 
-					# Release grabbed frame object to free buffer **Test with FLIR
-					cam.ReleaseFrame(grabResult)
+				# Release grabbed frame object to free buffer **Test with FLIR
+				cam.ReleaseFrame(grabResult)
 
 			except Exception as e:
 				if cam_params["cameraDebug"]:
