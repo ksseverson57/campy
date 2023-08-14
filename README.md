@@ -1,6 +1,6 @@
 # This is an experimental branch currently under development
 # Preparing new release (2.0.0) coming September 2023
-- Added AV1 encoding examples
+- Added AV1 encoding support and examples
 - Added constant bitrate (cbr) quality mode
 - With cbr, file sizes can be reduced up to 10X with minimal loss in visual quality
 - Integrated Basler pypylon zero-copy to reduce overhead
