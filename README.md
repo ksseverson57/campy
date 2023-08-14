@@ -1,6 +1,16 @@
+# This is an experimental branch currently under development
+# Preparing new release (2.0.0) coming September 2023
+- Added AV1 encoding examples
+- Added constant bitrate (cbr) quality mode
+- With cbr, file sizes can be reduced up to 10X with minimal loss in visual quality
+- Integrated Basler pypylon zero-copy to reduce overhead
+- Re-worked closeout sequence to improve synchronicity when recording is interrupted by user
+- Unified performant display window using opencv
+- Minor bug fixes
+
 # campy
-- Python package for streaming video from multiple cameras to disk. 
-- Features real-time hardware-accelerated video compression and debayering using FFmpeg.
+- Python package for streaming video from multiple cameras 
+- Features real-time hardware-accelerated video compression and debayering using FFmpeg
 
 ## Hardware/software
 - Basler and/or FLIR machine vision camera(s)
