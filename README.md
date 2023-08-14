@@ -1,11 +1,12 @@
 # This is an experimental branch currently under development
 # Preparing new release (2.0.0) coming September 2023
-- Added AV1 encoding support and examples
+- Added AV1 encoding support for better streaming quality per bit rate (see examples)
+  Note: AV1 decoding may be slower than H264/265
 - Added constant bitrate (cbr) quality mode
-- With cbr, file sizes can be reduced up to 10X with minimal loss in visual quality
+  With cbr, video files can be compressed more with minimal loss in visual quality
 - Integrated Basler pypylon zero-copy to reduce overhead
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user
-- Unified performant display window using opencv
+- Unified display window using opencv
 - Minor bug fixes
 
 # campy
@@ -14,13 +15,13 @@
 
 ## Hardware/software
 - Basler and/or FLIR machine vision camera(s)
-- Windows or Linux PC
+- Windows or Linux PC (Mac support not tested)
 - (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
 - (Optional) Arduino/Teensy microcontroller for syncing cameras and other recordings
 
 ## Installation
 1. Update graphics drivers
-2. Create and activate a new Python 3.7 Anaconda environment:
+2. Create and activate a new Python Anaconda environment:
 ```
 conda create -n campy python=3.7 imageio-ffmpeg matplotlib -c conda-forge
 conda activate campy
@@ -56,6 +57,15 @@ git clone https://github.com/ksseverson57/campy.git
 5. Finally, install campy and its dependencies (see setup.py) by navigating to campy folder:
 ```
 pip install -e .
+```
+
+6. (Optional) Install your ffmpeg build of choice (e.g., 6.0.0 includes AV1 encoding support)
+```
+conda install ffmpeg==6.0.0 -c conda-forge
+```
+- Include in config.yaml:
+```
+ffmpegPath: "/path/to/ffmpeg.exe"
 ```
 
 ## Usage
@@ -95,14 +105,14 @@ recTimeInSeconds: 3600
 - To manually end, press Ctrl^C. Wait until campy exits!
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
-### Helpful tips
-- To debug broken ffmpeg pipe error, include this in config.yaml:
+### Helpful Tips
+- To debug broken ffmpeg pipe error, up the ffmpeg log level in config.yaml:
 ```
 ffmpegLogLevel: "warning"
 ```
 - Use the command "ffmpeg" to check enabled packages. Hardware encoder support must be enabled in your ffmpeg binary.
 - Windows ffmpeg binary installed by Anaconda should have hardware encoder support enabled by default.
-- On Linux, you may need to compile your own ffmpeg binary to enable encoders:
+- On Linux, you may need to compile your own ffmpeg binary to enable certain codecs, filters, or plugins:
 - Nvidia:
 ```
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
@@ -136,10 +146,11 @@ ffmpegPath: "/usr/bin/ffmpeg"
 ```
 
 ## Authors
-Written by Kyle Severson with contributions from Diego Aldarondo and Iris Odstrcil (2019-2021).
+Written by Kyle Severson with contributions from Diego Aldarondo and Iris Odstrcil.
 
 ## Credits
-Special thanks to Tim Dunn, David Hildebrand, Vincent Prevosto, Manuel Levy, and Paul Thompson for helpful comments.
+Special thanks to Paul Thompson, Tim Dunn, Talmo Pereira, David Hildebrand, Vincent Prevosto, and Manuel Levy for helpful comments.
 
 ## License
 MIT License
+(2019-2023)
