@@ -19,7 +19,6 @@ def GetDeviceList(system):
 
 
 def LoadDevice(systems, params, cam_params):
-	# system = params["systems"]["basler"]["system"]
 	system = systems["basler"]["system"]
 	cam_params["camera"] = system.CreateDevice(cam_params["device"])
 	return cam_params
@@ -80,6 +79,11 @@ def GrabFrame(camera, frameNumber):
 
 def GetImageArray(grabResult):
 
+	return grabResult.GetArrayZeroCopy()
+
+
+def CopyImageArray(grabResult):
+
 	return grabResult.Array
 
 
@@ -89,29 +93,28 @@ def GetTimeStamp(grabResult):
 
 
 def DisplayImage(cam_params, dispQueue, grabResult):
-	# Basler display window is more performant than generic matplot figure
-	if sys.platform == 'win32':
-		dispQueue.SetImage(grabResult)
-		dispQueue.Show()
+
+	# Copy RGB image
+	if cam_params["pixelFormatInput"].find("bayer") != -1:
+		img = ConvertBayerToRGB(converter, grabResult)
 	else:
-		# If pixelformat is bayer, first convert result to RGB
-		if cam_params["pixelFormatInput"].find("bayer") != -1:
-			converter = pylon.ImageFormatConverter()
-			converter.OutputPixelFormat = pylon.PixelType_RGB8packed
-			img = converter.Convert(grabResult).GetArray()
-		else:
-			img = grabResult.GetArray()
+		img = CopyImageArray(grabResult)
 
-		# Downsample image
-		img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
+	# Downsample image
+	img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
 
-		# Send image to display window thru queue
-		dispQueue.append(img)
+	# Convert to BGR for opencv
+	if img.ndim == 3:
+		img = img[...,::-1]
+
+	# Queue image for display in opencv window
+	dispQueue.append(img)
 
 
 def ReleaseFrame(grabResult):
-
-	grabResult.Release()
+	# memory buffer is released in the zero-copy context manager
+	# grabResult.Release()
+	pass
 
 
 def CloseCamera(cam_params, camera):
@@ -126,9 +129,13 @@ def CloseSystem(system, device_list):
 	del device_list
 
 
-# Basler-Specific Functions
-def OpenPylonImageWindow(cam_params):
-	imageWindow = pylon.PylonImageWindow()
-	imageWindow.Create(cam_params["n_cam"])
-	imageWindow.Show()
-	return imageWindow
+# Basler-specific functions
+def GetConverter():
+	converter = pylon.ImageFormatConverter()
+	converter.OutputPixelFormat = pylon.PixelType_RGB8packed
+	return converter
+
+
+def ConvertBayerToRGB(converter, grabResult):
+	img = converter.Convert(grabResult)
+	return img.Array

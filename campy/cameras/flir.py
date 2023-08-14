@@ -122,6 +122,11 @@ def GetImageArray(grabResult):
 	return grabResult.GetNDArray()
 
 
+def CopyImageArray(grabResult):
+
+	return grabResult.GetNDArray()
+
+
 def GetTimeStamp(grabResult):
 
 	return grabResult.GetChunkData().GetTimestamp() * 1e-9

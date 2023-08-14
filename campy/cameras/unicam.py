@@ -1,12 +1,15 @@
 """
-Unicam unifies camera APIs with common syntax to simplify multi-camera acquisition and 
-reduce redundancy in campy code.
+Unicam is a translation layer that 
+unifies camera APIs with common syntax 
+to generalize multi-camera acquisition and 
+reduce redundancy in campy.
 """
 
 import os, sys, time, csv, logging
 import numpy as np
 from collections import deque
 from scipy import io as sio
+import datetime
 
 
 def ImportCam(make):
@@ -96,13 +99,13 @@ def GrabData(cam_params):
 	if cam_params["displayFrameRate"] <= 0:
 		grabdata["frameRatio"] = float('inf')
 	elif cam_params["displayFrameRate"] > 0 and cam_params["displayFrameRate"] <= cam_params['frameRate']:
-		grabdata["frameRatio"] = int(round(cam_params["frameRate"]/cam_params["displayFrameRate"]))
+		grabdata["frameRatio"] = int(round(cam_params["frameRate"] / cam_params["displayFrameRate"]))
 	else:
 		grabdata["frameRatio"] = cam_params["frameRate"]
 
-	# Calculate number of images and chunk length
-	grabdata["numImagesToGrab"] = int(round(cam_params["recTimeInSec"]*cam_params["frameRate"]))
-	grabdata["chunkLengthInFrames"] = int(round(cam_params["chunkLengthInSec"]*cam_params["frameRate"]))
+	# Calculate number of images
+	grabdata["numImagesToGrab"] = int(round(cam_params["recTimeInSec"] * cam_params["frameRate"]))
+	grabdata["displayFrameCounter"] = int(round(cam_params["displayFrameCounter"] * cam_params["frameRate"]))
 
 	return grabdata
 
@@ -115,65 +118,96 @@ def StartGrabbing(camera, cam_params, cam):
 
 
 def CountFPS(grabdata, frameNumber, timeStamp):
-	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
+	if frameNumber == grabdata["numImagesToGrab"]:
+		# If last frame, clear output
+		print("                                                                         ", end="\r")
+	elif frameNumber % grabdata["displayFrameCounter"] == 0:
 		timeElapsed = timeStamp - grabdata["timeStamp"][0]
-		fpsCount = round(frameNumber / timeElapsed, 1)
-		print('{} collected {} frames at {} fps for {} sec.'\
-			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
+		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
+		print('Collected {} frames at {} fps for {} sec.'\
+			.format(frameNumber, fpsCount, round(timeElapsed, 1)),
+			end="\r")
 
 
-def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue):
+def GrabFrames(
+	cam_params, 
+	writeQueue, 
+	dispQueue, 
+	stopGrabQueue, 
+	stopReadQueue, 
+	stopWriteQueue
+):
 	# Open the camera object
 	cam, camera, cam_params = OpenCamera(cam_params, stopWriteQueue)
-
-	# Use Basler's default display window on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params["cameraMake"] == 'basler':
-		dispQueue = cam.OpenPylonImageWindow(cam_params)
 
 	# Create dictionary for appending frame number and timestamp information
 	grabdata = GrabData(cam_params)
 
 	# Start grabbing frames from the camera
 	grabbing = StartGrabbing(camera, cam_params, cam)
+	closing = False
+	closed = False
+	frameNumber = int(0)
 
-	frameNumber = 0
-	while(not stopReadQueue):
-		try:
-			# Grab image from camera buffer if available
-			grabResult = cam.GrabFrame(camera, frameNumber)
+	# If pixelformat is bayer, first convert to RGB
+	if cam_params["pixelFormatInput"].find("bayer") != -1:
+		converter = cam.GetConverter()
 
-			# Append numpy array to writeQueue for writer to append to file
-			img = cam.GetImageArray(grabResult)
-			writeQueue.append(img)
+	while(True):
+		if stopGrabQueue or frameNumber >= grabdata["numImagesToGrab"]:
+			# Get the recording end date and time
+			grabdata["dateTimeEnd"] = datetime.datetime.now()
+			grabbing = False
 
-			# Append timeStamp and frameNumber to grabdata
-			frameNumber += 1
-			grabdata['frameNumber'].append(frameNumber) # first frame = 1
-			timeStamp = cam.GetTimeStamp(grabResult)
-			grabdata['timeStamp'].append(timeStamp)
+		if grabbing:
+			try:
+				# Grab image from camera buffer if available
+				grabResult = cam.GrabFrame(camera, frameNumber)
 
-			# Display converted, downsampled image in the Window
-			if frameNumber % grabdata["frameRatio"] == 0:
-				img = cam.DisplayImage(cam_params, dispQueue, grabResult)
+				frameNumber += 1 # first frame = 1
+				if frameNumber==1:
+					# Get the recording start date and time
+					grabdata["dateTimeStart"] = datetime.datetime.now()
 
-			CountFPS(grabdata, frameNumber, timeStamp)
+				# Append timeStamp and frameNumber to grabdata
+				timeStamp = cam.GetTimeStamp(grabResult)
+				grabdata['frameNumber'].append(frameNumber)
+				grabdata['timeStamp'].append(timeStamp)
+				CountFPS(grabdata, frameNumber, timeStamp)
 
-			cam.ReleaseFrame(grabResult)
+				# Queue image array from grab result
+				# Use context manager to pass memory pointer for zero-copy 
+				# with grabResult.GetArrayZeroCopy() as img:
+				with cam.GetImageArray(grabResult) as img:
+					writeQueue.append(img)
 
-			if frameNumber >= grabdata["numImagesToGrab"]:
-				break
+					# Queue copy of RGB image for display
+					if frameNumber % grabdata["frameRatio"] == 0:
+						cam.DisplayImage(cam_params, dispQueue, grabResult)
 
-		except Exception as e:
-			if cam_params["cameraDebug"]:
-				logging.error('Caught exception at cameras/unicam.py GrabFrames: {}'.format(e))
-			time.sleep(0.001)
+					# Release grabbed frame object to free buffer **Test with FLIR
+					cam.ReleaseFrame(grabResult)
 
-	# Close the camaera, save metadata, and tell writer and display to close
-	cam.CloseCamera(cam_params, camera)
-	SaveMetadata(cam_params, grabdata)
-	if not sys.platform=='win32' or not cam_params['cameraMake'] == 'basler':
-		dispQueue.append('STOP')
-	stopWriteQueue.append('STOP')
+			except Exception as e:
+				if cam_params["cameraDebug"]:
+					logging.error('Caught exception at cameras/unicam.py GrabFrames: {}'.format(e))
+				time.sleep(0.0001)
+		else:
+			# If frame grabbing is complete, initiate closing sequence
+			if not closing:
+				# Close the camera, save metadata, and tell writer and display to close
+				CountFPS(grabdata, frameNumber, timeStamp)
+				SaveMetadata(cam_params, grabdata)
+				dispQueue.append("STOP")
+				stopWriteQueue.append("STOP")
+				closing = True
+			else:
+				if not closed:
+					if stopReadQueue:
+						cam.CloseCamera(cam_params, camera)
+						closed = True
+				else:
+					time.sleep(0.01)
 
 
 def SaveMetadata(cam_params, grabdata):
@@ -187,8 +221,8 @@ def SaveMetadata(cam_params, grabdata):
 		# Get the frame and time counts to save into metadata
 		frame_count = grabdata['frameNumber'][-1]
 		time_count = grabdata['timeStamp'][-1]
-		fps_count = int(round(frame_count/time_count))
-		print('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
+		fps_count = round((frame_count - 1) / time_count, 3)
+		print('{} grabbed {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
 
 		meta = cam_params
 
@@ -208,7 +242,11 @@ def SaveMetadata(cam_params, grabdata):
 		csv_filename = os.path.join(full_folder_name, 'metadata.csv')
 		meta['totalFrames'] = grabdata['frameNumber'][-1]
 		meta['totalTime'] = grabdata['timeStamp'][-1]
-		
+		meta['dateStart'] = grabdata['dateTimeStart'].strftime("%Y/%m/%d")
+		meta['dateEnd'] = grabdata['dateTimeEnd'].strftime("%Y/%m/%d")
+		meta['timeStart'] = grabdata['dateTimeStart'].strftime("%H:%M:%S") # :%f # microseconds
+		meta['timeEnd'] = grabdata['dateTimeEnd'].strftime("%H:%M:%S")
+
 		with open(csv_filename, 'w', newline='') as f:
 			w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
 			for row in meta.items():
@@ -216,7 +254,10 @@ def SaveMetadata(cam_params, grabdata):
 				if isinstance(row[1],(list,str,int,float)):
 					w.writerow(row)
 
-		print('Saved metadata for {}.'.format(cam_params['cameraName']))
+		print("Recording for {} ended on {} at {}".format(
+			cam_params['cameraName'], 
+			meta['dateEnd'], 
+			meta['timeEnd']))
 
 	except Exception as e:
 		logging.error('Caught exception: {}'.format(e))
