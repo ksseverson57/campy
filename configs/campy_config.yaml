@@ -5,7 +5,7 @@
 # Recording parameters
 videoFolder: "./test"
 videoFilename: "0.mp4"
-frameRate: 100
+frameRate: 25
 recTimeInSec: 30
 
 # Camera parameters
@@ -19,7 +19,7 @@ frameHeight: 1024
 gpuID: -1
 pixelFormatInput: "rgb24"
 pixelFormatOutput: "rgb0"
-quality: 17
+quality: 21
 ffmpegLogLevel: "warning"
 # ffmpegPath: "/usr/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
 

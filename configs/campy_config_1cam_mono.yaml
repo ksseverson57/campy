@@ -5,7 +5,7 @@
 # Recording parameters
 videoFolder: "./test"
 videoFilename: "0.mp4"
-frameRate: 100
+frameRate: 25
 recTimeInSec: 30
 
 # Camera parameters

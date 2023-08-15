@@ -2,12 +2,12 @@
 # Intel's integrated GPU ("Quick Sync Video")
 # to save the video to disk**
 # **Video stream is lossless (not compressed)
-# Intel dedicated GPUs (DG1, DG2) will be supported in a future release
+# Intel dedicated GPUs (Xe, Arc) will be supported in a future release
 
 # Recording parameters
 videoFolder: "./test"
 videoFilename: "0.mp4"
-frameRate: 100
+frameRate: 25
 recTimeInSec: 30
 
 # Camera parameters
