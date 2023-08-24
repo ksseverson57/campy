@@ -111,10 +111,8 @@ def GrabData(cam_params):
 
 
 def StartGrabbing(camera, cam_params, cam):
-	grabbing = cam.StartGrabbing(camera)
-	if grabbing:
-		print(cam_params["cameraName"], "ready to trigger.")
-	return grabbing
+
+	return cam.StartGrabbing(camera)
 
 
 def CountFPS(grabdata, frameNumber, timeStamp):
@@ -164,29 +162,36 @@ def GrabFrames(
 				# Grab image from camera buffer if available
 				grabResult = cam.GrabFrame(camera, frameNumber)
 
-				frameNumber += 1 # first frame = 1
-				if frameNumber==1:
-					# Get the recording start date and time
-					grabdata["dateTimeStart"] = datetime.datetime.now()
+				if cam.GrabSucceeded(grabResult):
+					frameNumber += 1 # first frame = 1
+					if frameNumber==1:
+						# Get the recording start date and time
+						grabdata["dateTimeStart"] = datetime.datetime.now()
 
-				# Append timeStamp and frameNumber to grabdata
-				timeStamp = cam.GetTimeStamp(grabResult)
-				grabdata['frameNumber'].append(frameNumber)
-				grabdata['timeStamp'].append(timeStamp)
-				CountFPS(grabdata, frameNumber, timeStamp)
-
-				# Queue image array from grab result
-				# Use context manager to pass memory pointer for zero-copy 
-				# with grabResult.GetArrayZeroCopy() as img:
-				with cam.GetImageArray(grabResult) as img:
-					writeQueue.append(img)
+					# Append timeStamp and frameNumber to grabdata
+					timeStamp = cam.GetTimeStamp(grabResult)
+					grabdata['frameNumber'].append(frameNumber)
+					grabdata['timeStamp'].append(timeStamp)
+					CountFPS(grabdata, frameNumber, timeStamp)
 
 					# Queue copy of RGB image for display
 					if frameNumber % grabdata["frameRatio"] == 0:
 						cam.DisplayImage(cam_params, dispQueue, grabResult)
 
-				# Release grabbed frame object to free buffer **Test with FLIR
-				cam.ReleaseFrame(grabResult)
+					# Queue image array from grab result
+					if cam_params["zeroCopy"]:
+						# Use context manager to pass memory pointer for zero-copy 
+						with cam.GetImageArray(grabResult) as img:
+							writeQueue.append(img)
+					else:
+						img = cam.CopyImageArray(grabResult)
+						writeQueue.append(img)
+						cam.ReleaseFrame(grabResult)
+
+				else:
+					# Release grabbed frame object to free memory buffer **Test with 
+					print('Grab failed for camera {}, frame {}'.format(cam_params["n_cam"] + 1, frameNumber))
+					cam.ReleaseFrame(grabResult)
 
 			except Exception as e:
 				if cam_params["cameraDebug"]:

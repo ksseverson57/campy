@@ -77,6 +77,11 @@ def GrabFrame(camera, frameNumber):
 	return camera.RetrieveResult(0, pylon.TimeoutHandling_ThrowException)
 
 
+def GrabSucceeded(grabResult):
+	
+	return grabResult.GrabSucceeded()
+
+
 def GetImageArray(grabResult):
 
 	return grabResult.GetArrayZeroCopy()
@@ -113,8 +118,7 @@ def DisplayImage(cam_params, dispQueue, grabResult):
 
 def ReleaseFrame(grabResult):
 	# memory buffer is released in the zero-copy context manager
-	# grabResult.Release()
-	pass
+	grabResult.Release()
 
 
 def CloseCamera(cam_params, camera):
