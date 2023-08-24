@@ -17,6 +17,7 @@ def CampyParams():
 	params["cameraSettings"] = "./configs/calibration.pfs"
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
+	params["zeroCopy"] = False
 
 	# Flir camera default parameters
 	params["bufferMode"] = "OldestFirst"

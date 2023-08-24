@@ -1,25 +1,56 @@
 """
-
+Performant user-interface for displaying 
+captured camera frames from deque to openCV window
 """
 import time
 import cv2
 
 def DisplayFrames(cam_params, dispQueue):
+	
+	window_name = "Camera" + str(cam_params['n_cam']+1)
+	cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+	window_open = True
 	displaying = True
+
 	while(displaying):
 		try:
 			if dispQueue:
 				img = dispQueue.popleft()
+
+				# If stop message received, exit the loop
 				if isinstance(img, str):
 					displaying = False
+					break
+
+				# Otherwise display queued image
 				else:
-					cv2.imshow("Camera" + str(cam_params['n_cam']+1), img) # cv2 expects mono or BGR
-					keypressed = cv2.waitKey(30)
-					if keypressed == ord('q'):
-						break
+					if window_open:
+						# opencv expects mono or BGR
+						cv2.imshow(window_name, img)
+
+						# If user presses "q", close window
+						keypressed = cv2.waitKey(30)
+						if keypressed == ord('q'):
+							window_open = False
+							break
+
+						# If user manually closes window, stay closed
+						if cv2.getWindowProperty(
+							window_name, cv2.WND_PROP_VISIBLE
+							) < 1:        
+							window_open = False
+							break
+
 			else:
 				time.sleep(0.01)
+
 		except KeyboardInterrupt:
 			break
 
+		except:
+			time.sleep(0.01)
+
+	# cv2.waitKey(0)
 	cv2.destroyAllWindows()
+	time.sleep(0.01)

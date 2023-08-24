@@ -14,7 +14,6 @@ def OpenWriter(cam_params, queue):
 
 		if not os.path.isdir(folder_name):
 			os.makedirs(folder_name)
-			print("Made directory {}.".format(folder_name))
 
 		# Flip blue and red for flir camera input
 		if cam_params["pixelFormatInput"] == "bayer_bggr8" and cam_params["cameraMake"] == "flir":
@@ -69,13 +68,13 @@ def OpenWriter(cam_params, queue):
 		# GPU compression
 		else:
 			# Nvidia GPU (NVENC) encoder optimized parameters
-			print("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
+			print("Opened Video: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
 			if cam_params["gpuMake"] == "nvidia":
 				if preset == None:
 					preset = "fast"
 				gpu_params = [
 							"-preset",preset,
-							"-bf:v","0", # B-frame spacing "2" less intensive for encoding
+							"-bf:v","0", # B-frame spacing "0"-"2" less intensive for encoding
 							"-g",g, # I-frame spacing
 							"-gpu",gpuID,
 							"-movflags","+faststart",
@@ -93,11 +92,12 @@ def OpenWriter(cam_params, queue):
 						Setting to default bit rate of 10M.")
 				gpu_params.extend(["-rc",quality_mode, ])
 				
-				if cam_params["codec"] == "h264":
+				if cam_params["codec"] == "h264" or cam_params["codec"] == "H264":
 					codec = "h264_nvenc"
-				if cam_params["codec"] == "h265" or cam_params["codec"] == "hevc":
+				if cam_params["codec"] == "h265" or cam_params["codec"] == "H265" \
+					or cam_params["codec"] == "hevc" or cam_params["codec"] == "HEVC":
 					codec = "hevc_nvenc"
-				elif cam_params["codec"] == "av1":
+				elif cam_params["codec"] == "av1" or cam_params["codec"] == "AV1":
 					codec = "av1_nvenc"
 
 				if get_ffmpeg_version() == "4.2.2":
@@ -196,6 +196,7 @@ def WriteFrames(
 					writeCount += 1
 				except Exception as e:
 					dropCount += 1
+
 			else:
 				# Once queue is depleted and grabbing stops, stop writing
 				if stopWriteQueue:

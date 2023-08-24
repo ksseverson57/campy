@@ -26,6 +26,7 @@ def DefaultParams():
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
 	params["cameraDebug"] = False
+	params["zeroCopy"] = False
 
 	# Flir camera default parameters
 	params["cameraTrigger"] = "None" # "Line3"
@@ -38,7 +39,7 @@ def DefaultParams():
 
 	# Compression default parameters
 	params["ffmpegLogLevel"] = "quiet"
-	params["ffmpegPath"] = None # "/home/usr/Documents/ffmpeg/ffmpeg"
+	params["ffmpegPath"] = None # "/home/usr/bin/ffmpeg"
 	params["pixelFormatInput"] = "rgb24" # "bayer_bggr8" "rgb24"
 	params["pixelFormatOutput"] = "rgb0"
 	params["gpuID"] = -1
@@ -308,6 +309,13 @@ def ParseClargs(parser):
 		dest="bufferSize",
 		type=int, 
 		help="Size of buffer to use in camera in frames (default: 100).",
+	)
+	parser.add_argument(
+		"--zeroCopy", 
+		dest="zeroCopy",
+		type=bool, 
+		help="Whether to use zero-copy of image arrays. \
+			Reduces CPU/memory overhead on Basler cameras (default: False).",
 	)
 
 	# ffmpeg arguments
