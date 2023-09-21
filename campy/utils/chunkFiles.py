@@ -36,31 +36,33 @@ def chunkFiles(camNum):
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
         fname_out = os.path.join(outdir,str(startFrame) + '_' + str(endFrame) + '.mp4')
+        time.sleep(0.1)
         
-        # No need to pad zeros
+        # Define startTime as "hh:mm:ss.ms"
         startTime = str(hrsStart) + ':' + str(minStart) + ':' + str(secStart) + '.' + str(msStart)
 
+        # Define endTime as "hh:mm:ss.ms"
         timeEnd = startTimeInSec + chunkLengthInSec
-        hr = math.floor(timeEnd/3600)
-        timeEnd = timeEnd - hr*3600
-        mn = math.floor(timeEnd/60)
-        timeEnd = timeEnd - mn*60
+        hr = math.floor(timeEnd / 3600)
+        timeEnd = timeEnd - hr * 3600
+        mn = math.floor(timeEnd / 60)
+        timeEnd = timeEnd - mn * 60
         sc = math.floor(timeEnd)
         timeEnd = timeEnd - sc
-        ms = math.floor(timeEnd*1000)
+        ms = math.floor(timeEnd * 1000)
 
         endTime = str(hr) + ':' + str(mn) + ':' + str(sc) + '.' + str(ms)
 
-        cmd = ('ffmpeg -y -i ' + fname_in + ' -ss ' + startTime + ' -to ' + endTime + 
+        cmd = ('ffmpeg -y -ss ' + startTime + ' -to ' + endTime + ' -i ' + fname_in +
         ' -c:v copy -c:a copy ' + fname_out + ' -async 1 '
         ' -hide_banner -loglevel warning')
 
         if os.path.isfile(fname_out):
-            print('Video ' + str(camNum+1) + ' chunk ' + str(t) + ' already exists...')
+            print('Video ' + str(camNum + 1) + ' chunk ' + str(t) + ' already exists...')
         else:
-            p = Popen(cmd.split())
-            print('Copying video ' + str(camNum+1) + ' chunk ' + str(t) + '...')
-            time.sleep(5)
+            p = Popen(cmd.split(), shell=True)
+            print('Copying video ' + str(camNum + 1) + ' chunk ' + str(t) + '...')
+            p.wait()
 
         startFrame = startFrame + chunkLengthInFrames
         endFrame = startFrame + chunkLengthInFrames - 1
