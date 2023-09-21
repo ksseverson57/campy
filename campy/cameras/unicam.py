@@ -1,5 +1,5 @@
 """
-Unicam is a translation layer that 
+unicam is a translation layer that 
 unifies camera APIs with common syntax 
 to generalize multi-camera acquisition and 
 reduce redundancy in campy.
@@ -118,13 +118,22 @@ def StartGrabbing(camera, cam_params, cam):
 def CountFPS(grabdata, frameNumber, timeStamp):
 	if frameNumber == grabdata["numImagesToGrab"]:
 		# If last frame, clear output
-		print("                                                                         ", end="\r")
+		print("\r", end="")
 	elif frameNumber % grabdata["displayFrameCounter"] == 0:
 		timeElapsed = timeStamp - grabdata["timeStamp"][0]
 		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
 		print('Collected {} frames at {} fps for {} sec.'\
 			.format(frameNumber, fpsCount, round(timeElapsed, 1)),
 			end="\r")
+
+
+def PackDictionary(img, frameNumber, timestamp):
+	im_dict = dict()
+	im_dict["array"] = img
+	im_dict["frameNumber"] = frameNumber
+	im_dict["timestamp"] = timestamp
+
+	return im_dict
 
 
 def GrabFrames(
@@ -150,6 +159,8 @@ def GrabFrames(
 	# If pixelformat is bayer, first convert to RGB
 	if cam_params["pixelFormatInput"].find("bayer") != -1:
 		converter = cam.GetConverter()
+	else:
+		converter = None
 
 	while(True):
 		if stopGrabQueue or frameNumber >= grabdata["numImagesToGrab"]:
@@ -170,22 +181,26 @@ def GrabFrames(
 
 					# Append timeStamp and frameNumber to grabdata
 					timeStamp = cam.GetTimeStamp(grabResult)
+
 					grabdata['frameNumber'].append(frameNumber)
 					grabdata['timeStamp'].append(timeStamp)
 					CountFPS(grabdata, frameNumber, timeStamp)
+					timeElapsed = timeStamp - grabdata["timeStamp"][0]
 
 					# Queue copy of RGB image for display
 					if frameNumber % grabdata["frameRatio"] == 0:
-						cam.DisplayImage(cam_params, dispQueue, grabResult)
+						cam.DisplayImage(cam_params, dispQueue, grabResult, converter)
 
 					# Queue image array from grab result
 					if cam_params["zeroCopy"]:
 						# Use context manager to pass memory pointer for zero-copy 
 						with cam.GetImageArray(grabResult) as img:
-							writeQueue.append(img)
+							im_dict = PackDictionary(img, frameNumber, timeElapsed)
+							writeQueue.append(im_dict)
 					else:
 						img = cam.CopyImageArray(grabResult)
-						writeQueue.append(img)
+						im_dict = PackDictionary(img, frameNumber, timeElapsed)
+						writeQueue.append(im_dict)
 						cam.ReleaseFrame(grabResult)
 
 				else:
@@ -231,10 +246,19 @@ def SaveMetadata(cam_params, grabdata):
 
 		meta = cam_params
 
-		# Save frame data to numpy file
+		# Save frame data to npy file
 		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
 		x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
 		np.save(npy_filename,x)
+
+		# Save frame data to formatted csv file
+		framedata_filename = os.path.join(full_folder_name, 'frametimes.csv')
+		x = x.T
+		x[:,0] = np.round(x[:,0])
+		np.savetxt(framedata_filename, x, 
+			delimiter=",", 
+			header="frameNumber,timestamp (s)",
+			fmt="%i,%1.4e")
 
 		# Also save frame data to MATLAB file
 		mat_filename = os.path.join(full_folder_name, 'frametimes.mat')

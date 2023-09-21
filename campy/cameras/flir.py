@@ -137,7 +137,7 @@ def GetFrameID(chunkData):
 	return chunkData.GetFrameID()
 
 
-def DisplayImage(cam_params, dispQueue, grabResult):
+def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
 	try:
 		if cam_params["pixelFormatInput"] == "bayer_rggb8" \
 		or cam_params["pixelFormatInput"] == "bayer_bggr8" \

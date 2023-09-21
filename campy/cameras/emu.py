@@ -82,7 +82,7 @@ def GetTimeStamp(grabResult):
 	return time.perf_counter()
 
 
-def DisplayImage(cam_params, dispQueue, grabResult):
+def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
 	# Downsample image
 	img = grabResult[::cam_params["displayDownsample"],::cam_params["displayDownsample"],:]
 

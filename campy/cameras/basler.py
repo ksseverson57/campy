@@ -97,23 +97,26 @@ def GetTimeStamp(grabResult):
 	return grabResult.TimeStamp*1e-9
 
 
-def DisplayImage(cam_params, dispQueue, grabResult):
+def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
+	try:
+		# Copy RGB image
+		if cam_params["pixelFormatInput"].find("bayer") != -1:
+			img = ConvertBayerToRGB(converter, grabResult)
+		else:
+			img = CopyImageArray(grabResult)
 
-	# Copy RGB image
-	if cam_params["pixelFormatInput"].find("bayer") != -1:
-		img = ConvertBayerToRGB(converter, grabResult)
-	else:
-		img = CopyImageArray(grabResult)
+		# Downsample image
+		img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
 
-	# Downsample image
-	img = img[::cam_params["displayDownsample"],::cam_params["displayDownsample"]]
+		# Convert to BGR for opencv
+		if img.ndim == 3:
+			img = img[...,::-1]
 
-	# Convert to BGR for opencv
-	if img.ndim == 3:
-		img = img[...,::-1]
-
-	# Queue image for display in opencv window
-	dispQueue.append(img)
+		# Queue image for display in opencv window
+		dispQueue.append(img)
+	except Exception as e:
+		if cam_params["camera_debug"]:
+			print(e)
 
 
 def ReleaseFrame(grabResult):
