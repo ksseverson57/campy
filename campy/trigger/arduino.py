@@ -11,6 +11,7 @@ E.g. Wait for 'Ready' message from Arduino to Python instead of "dumb" sleep
 
 import serial
 import time, logging
+import math
 
 
 def StartTriggers(systems, params):
@@ -21,11 +22,14 @@ def StartTriggers(systems, params):
 							baudrate=115200,
 							timeout=0.1)
 
-		# This sleep is important. Wait for Arduino to initialize
+		# This sleep is important to allow Arduino to fully initialize
 		time.sleep(3)
 
+		frameDurationInMicroseconds = math.floor(1e6 / params["frameRate"])
+		frameRate = 1 / (frameDurationInMicroseconds / 1e6)
+
 		# Serialize pin length, IDs, and frame rate to a single string
-		serialList = [len(params["digitalPins"])] + params["digitalPins"] + [params["frameRate"]]
+		serialList = [len(params["digitalPins"])] + params["digitalPins"] + [frameDurationInMicroseconds]
 		systems["serialCommand"] = serialList
 		serialString = ",".join(str(item) for item in serialList)
 
@@ -33,10 +37,11 @@ def StartTriggers(systems, params):
 		systems["serial"].write(serialString.encode())
 
 		print("Arduino on port {} is ready to trigger pins {} at {} fps."\
-			.format(params["serialPort"], params["digitalPins"], params["frameRate"]), flush=True)
+			.format(params["serialPort"], params["digitalPins"], round(frameRate,2)), flush=True)
 
 	except Exception as e:
 		pass
+
 	return systems
 
 

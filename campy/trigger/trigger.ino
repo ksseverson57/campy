@@ -14,6 +14,7 @@ float frame_rate_out = 0;
 unsigned long frame_start, frame_period, time_zero;
 uint32_t frame_count = 0;
 
+
 void setup( void ) {
 
   Serial.begin(baudrate);
@@ -33,7 +34,6 @@ void setup( void ) {
 
   // Wait for streams and cams to initialize
   ResetTimer(); 
-  
 }
 
 
@@ -78,12 +78,15 @@ unsigned long SetFrameRate() {
   frame_rate_in = Serial.parseFloat();
 
   // Output frame rate, avoid negative values
-  if (frame_rate_in == 0) {}
+  if (frame_rate_in == 0) {
+    frame_rate_out = 0;
+    }
   else if (frame_rate_in < 0) {
+    frame_rate_in = 0;
     frame_rate_out = 0;
   }
   else {
-    frame_rate_out = frame_rate_in;
+    frame_rate_out = 1 / (frame_rate_in / 1000000);
   }
 
   // Print results
@@ -92,7 +95,7 @@ unsigned long SetFrameRate() {
   Serial.print(frame_rate_out);
   Serial.print(" fps.");
 
-  return frame_rate_out;
+  return frame_rate_in;
 }
 
 
@@ -104,7 +107,7 @@ unsigned long SetFramePeriod( unsigned long fr ) {
     frame_period = 0xFFFFFFFF;
   }
   else {
-    frame_period = 1e6 / fr;
+    frame_period = fr;
   }
 
   Serial.println("");
@@ -120,8 +123,7 @@ void FlushSerialBuffer() {
   
   while (Serial.available() != 0) {
     Serial.parseFloat();
-  }
-  
+  } 
 }
 
 
@@ -131,8 +133,7 @@ void ResetTimer() {
   FlushSerialBuffer();
   frame_count = 0;
   time_zero = frame_count * frame_period;
-  frame_start = micros() + time_zero;
-  
+  frame_start = micros() + time_zero; 
 }
 
 
@@ -143,8 +144,7 @@ void SetPinsHigh() {
   for ( int i = 0; i < n_sync; i++ ) {
     digitalWrite(DIG_out_pins[i], HIGH);
   }
-  interrupts();
-  
+  interrupts();  
 }
 
 
@@ -162,6 +162,7 @@ unsigned long Timer() {
   
   return micros() + time_zero - frame_start;
 }
+
 
 void loop( void ) {
   
@@ -186,6 +187,5 @@ void loop( void ) {
     while (Timer() < frame_period) {}
 
     frame_start = frame_start + frame_period;
-  }
-  
+  } 
 }
