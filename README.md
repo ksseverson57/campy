@@ -1,12 +1,18 @@
 # This is an experimental branch currently under development
-# Preparing new release (2.1.0) coming September 2023
+# Preparing new release (2.1.0) September 2023
 - Added AV1 encoding support for better streaming quality per bit rate (see examples)
   Note: AV1 decoding may be slower than H264/265
 - Added constant bitrate (cbr) mode
-  With cbr, video files can be compressed more with minimal loss in visual quality
+  With cbr, video files can be compressed consistently with minimal loss in visual quality
+  However, constant quality (constqp) mode can compress with fewer artifacts in frames with rapid motion
 - Integrated Basler pypylon zero-copy to reduce overhead
-- Re-worked closeout sequence to improve synchronicity when recording is interrupted by user
-- Unified display window using opencv
+- Re-worked closeout sequence to improve synchronicity when recording is interrupted by user (Ctrl+C)
+- Unified display window across camera APIs using opencv
+- Added seamless chunking to split video into multiple files (see help for "chunkLengthInFrames")
+- Replaced config parameter "chunkLengthInFrames" with "displayFrameCounter" for reporting FPS and recording progress
+- Added support for non-integer frame rates
+  Trigger module now passes inter-frame interval in microseconds rather than frame rate to microcontroller
+  ** Re-upload trigger.ino if updating to campy 2.1 if using campy's included trigger module
 - Minor bug fixes
 
 # campy
@@ -15,7 +21,7 @@
 
 ## Hardware/software
 - Basler and/or FLIR machine vision camera(s)
-- Windows or Linux PC (Mac support not tested)
+- Windows 10/11 or Linux PC (Mac support not tested)
 - (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
 - (Optional) Arduino/Teensy microcontroller for syncing cameras and other recordings
 
@@ -23,7 +29,7 @@
 1. Update graphics drivers
 2. Create and activate a new Python Anaconda environment:
 ```
-conda create -n campy python=3.7 imageio-ffmpeg matplotlib -c conda-forge
+conda create -n campy python=3.8 imageio-ffmpeg -c conda-forge
 conda activate campy
 pip install -U setuptools
 ```
@@ -44,7 +50,7 @@ pip install -U setuptools
   
 - If using FLIR cameras:
   - Download and install Spinnaker SDK and SpinView software from FLIR's website: 
-    https://www.flir.com/support-center/iis/machine-vision/downloads/spinnaker-sdk-and-firmware-download/
+    https://www.flir.com/products/spinnaker-sdk
   - Manually install binary wheel for PySpin (included in the Spinnaker download)
     E.g. for Python 3.7 on Windows amd64 system, install "spinnaker_python-2.3.0.77-cp37-cp37m-win_amd64.whl"
   ```
@@ -59,7 +65,7 @@ git clone https://github.com/ksseverson57/campy.git
 pip install -e .
 ```
 
-6. (Optional) Install your ffmpeg build of choice (e.g., 6.0.0 includes AV1 encoding support)
+6. (Optional) Install your ffmpeg build of choice (e.g., 6.0.0 includes AV1 encoding support; however 4.2.2 supports h264/h265 best)
 ```
 conda install ffmpeg==6.0.0 -c conda-forge
 ```
@@ -103,9 +109,16 @@ campy-acquire ./configs/campy_config.yaml
 recTimeInSeconds: 3600
 ```
 - To manually end, press Ctrl^C. Wait until campy exits!
-- Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
+- Three files, "frametimes.mat", "frametimes.npy", "frametimes.csv", "writer_frametimes.csv", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
 ### Helpful Tips
+- Check that your cameras and features can be loaded in the camera vendor's GUI (e.g. Pylon Viewer for Basler).
+- Try replugging USB cables if cameras cannot be found or saving new camera features if errors arise during loading of camera settings
+
+- If your compression streams are limited to 5 random cameras, it could be due to hard limit of 5 simultaneous encoding streams per system when using NVIDIA Geforce cards
+- Tesla/Quadro cards are typically unrestricted
+- NVIDIA driver patch can circumvent this restriction
+
 - To debug broken ffmpeg pipe error, up the ffmpeg log level in config.yaml:
 ```
 ffmpegLogLevel: "warning"
