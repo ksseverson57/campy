@@ -1,17 +1,17 @@
 # This is an experimental branch currently under development
 # Preparing new release (2.1.0) September 2023
-- Added AV1 encoding support for better streaming quality per bit rate (see examples)
+- Added AV1 encoding support for better streaming quality per bit rate (see examples) \
   Note: AV1 decoding may be slower than H264/265
-- Added constant bitrate (cbr) mode
-  With cbr, video files can be compressed consistently with minimal loss in visual quality
+- Added constant bitrate (cbr) mode \
+  With cbr, video files can be compressed consistently with minimal loss in visual quality \
   However, constant quality (constqp) mode can compress with fewer artifacts in frames with rapid motion
 - Integrated Basler pypylon zero-copy to reduce overhead
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user (Ctrl+C)
 - Unified display window across camera APIs using opencv
 - Added seamless chunking to split video into multiple files (see help for "chunkLengthInFrames")
 - Replaced config parameter "chunkLengthInFrames" with "displayFrameCounter" for reporting FPS and recording progress
-- Added support for non-integer frame rates
-  Trigger module now passes inter-frame interval in microseconds rather than frame rate to microcontroller
+- Added support for non-integer frame rates \
+  Trigger module now passes inter-frame interval in microseconds rather than frame rate to microcontroller \
   ** Re-upload trigger.ino if updating to campy 2.1 if using campy's included trigger module
 - Minor bug fixes
 
