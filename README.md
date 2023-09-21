@@ -1,4 +1,5 @@
-# This is an experimental branch currently under development
+# This is an experimental branch currently being tested
+# Beta testers are welcome to post issues!
 # Preparing new release (2.1.0) September 2023
 - Added AV1 encoding support for better streaming quality per bit rate (see examples) \
   Note: AV1 decoding may be slower than H264/265
