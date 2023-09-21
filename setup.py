@@ -6,7 +6,7 @@ setup(
 	packages=find_packages(),
 	install_requires=[
 					'imageio',
-					'matplotlib',
+					'opencv-python',
 					'numpy',
 					'pyserial',
 					'pyyaml',
