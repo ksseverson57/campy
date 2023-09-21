@@ -1,6 +1,5 @@
 """
-Performant user-interface for displaying 
-captured camera frames from deque to openCV window
+Displays captured camera frames in performant openCV window
 """
 import time
 import cv2
@@ -8,7 +7,7 @@ import cv2
 def DisplayFrames(cam_params, dispQueue):
 	
 	window_name = "Camera" + str(cam_params['n_cam']+1)
-	cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+	cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
 	window_open = True
 	displaying = True

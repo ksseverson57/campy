@@ -19,6 +19,7 @@ def DefaultParams():
 	params["videoFilename"] = "0.mp4"
 	params["frameRate"] = 100
 	params["recTimeInSec"] = 10
+	params["chunkLengthInSec"] = None
 
 	# Camera default parameters
 	params["cameraMake"] = "basler"
@@ -27,30 +28,28 @@ def DefaultParams():
 	params["frameHeight"] = 1024
 	params["cameraDebug"] = False
 	params["zeroCopy"] = False
-
-	# Flir camera default parameters
-	params["cameraTrigger"] = "None" # "Line3"
-	params["cameraOut"] = 2
 	params["bufferMode"] = "OldestFirst"
-	params["bufferSize"] = 100
+	params["bufferSize"] = 500
+	params["cameraTrigger"] = None
+	params["cameraOut"] = 2
 	params["cameraExposureTimeInUs"] = 1500
 	params["cameraGain"] = 1
 	params["disableGamma"] = True
 
 	# Compression default parameters
 	params["ffmpegLogLevel"] = "quiet"
-	params["ffmpegPath"] = None # "/home/usr/bin/ffmpeg"
-	params["pixelFormatInput"] = "rgb24" # "bayer_bggr8" "rgb24"
+	params["ffmpegPath"] = None
+	params["pixelFormatInput"] = "rgb24"
 	params["pixelFormatOutput"] = "rgb0"
-	params["gpuID"] = -1
+	params["gpuID"] = 0
 	params["gpuMake"] = "nvidia"
 	params["codec"] = "h264"  
 	params["quality"] = "10M"
 	params["qualityMode"] = None
-	params["preset"] = "None"
+	params["preset"] = None
 
 	# Display parameters
-	params["displayFrameCounter"] = 5
+	params["displayFrameCounter"] = 1
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 4
 
@@ -64,6 +63,11 @@ def DefaultParams():
 
 
 def AutoParams(params, default_params):
+
+	# If chunk length is not set, record video in single chunk
+	if params["chunkLengthInSec"] is None:
+		params["chunkLengthInSec"] = params["recTimeInSec"]	
+
 	# Handle out-of-range values (reset to default)
 	range_params = [
 		"numCams",
@@ -77,6 +81,7 @@ def AutoParams(params, default_params):
 		"displayFrameCounter",
 		"displayFrameRate",
 		"displayDownsample",
+		"chunkLengthInSec",
 		]
 
 	for i in range(len(range_params)):
@@ -106,7 +111,7 @@ def ConfigureParams():
 	params = CombineConfigAndClargs(clargs)
 
 	# Optionally, user can manually set path to find ffmpeg binary.
-	if params["ffmpegPath"] is not "None":
+	if params["ffmpegPath"] is not None:
 		os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpegPath"]
 
 	return params
@@ -217,6 +222,12 @@ def ParseClargs(parser):
 		type=float,
 		help="Recording time in seconds.",
 	)    
+	parser.add_argument(
+		"--chunkLengthInSec",
+		dest="chunkLengthInSec",
+		type=float,
+		help="Length of video chunks to save, in seconds."
+	)
 	parser.add_argument(
 		"--numCams", 
 		dest="numCams", 
