@@ -1,0 +1,38 @@
+# Video parameters
+videoFolder: "./videos"
+videoFilename: "0.mp4"
+frameRate: 100
+recTimeInSec: 120
+chunkLengthInSec: 10
+
+# Camera parameters
+numCams: 6
+cameraNames: ["Camera1","Camera2","Camera3","Camera4","Camera5","Camera6"]
+cameraMake: "basler"
+cameraSettings: "./configs/rgb24.pfs"
+pixelFormatInput: "rgb24"
+pixelFormatOutput: "rgb0"
+frameWidth: 1152
+frameHeight: 1024
+bufferSize: 1500
+zeroCopy: True
+
+# FFmpeg compression parameters
+ffmpegLogLevel: "quiet"               
+gpuID: 0
+gpuMake: "nvidia"                    
+
+# ffmpegPath: "./.conda/envs/campy42/Library/bin/ffmpeg.exe"
+codec: "h265"
+quality: "4M"
+preset: "llhq"
+
+# Display parameters
+displayFrameCounter: 1
+displayDownsample: 3
+displayFrameRate: 25
+
+# Trigger parameters
+startArduino: True
+serialPort: "COM3"
+digitalPins: [0,1,2,3,4,5,6]
