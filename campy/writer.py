@@ -107,8 +107,7 @@ def OpenWriter(file_name, cam_params, queue):
 
 				if get_ffmpeg_version() == "4.2.2":
 					gpu_params.extend(["-vsync", "0"])
-					gpu_params.extend(["-r:v", frameRate])
-
+					# gpu_params.extend(["-r:v", frameRate])
 				else:
 					gpu_params.extend(["-fps_mode", "passthrough"])
 
@@ -202,8 +201,12 @@ def WriteFrames(
 	cam_params["chunkLengthInFrames"] = math.ceil(
 		cam_params["chunkLengthInSec"] * cam_params["frameRate"]
 		)
-	recTimeInFrames = math.ceil(cam_params["recTimeInSec"] * cam_params["frameRate"])
-	num_chunks = math.ceil(cam_params["recTimeInSec"] / cam_params["chunkLengthInSec"])
+	recTimeInFrames = math.ceil(
+		cam_params["recTimeInSec"] * cam_params["frameRate"]
+		)
+	num_chunks = math.ceil(
+		cam_params["recTimeInSec"] / cam_params["chunkLengthInSec"]
+		)
 	chunk_size = cam_params["chunkLengthInFrames"]
 
 	# Compile array of all chunk frame start and end indices
@@ -218,7 +221,7 @@ def WriteFrames(
 
 	# Set frame range to current chunk
 	curr_chunk_range = chunks[curr_chunk]
-	currvideo_name = str(curr_chunk_range[0]) + ext #  + "_" + str(curr_chunk_range[1])
+	currvideo_name = str(curr_chunk_range[0]) + ext
 
 	# Initialize first ffmpeg video writer
 	writer, writing, readQueue = OpenWriter(currvideo_name, cam_params, stopGrabQueue)
@@ -230,15 +233,15 @@ def WriteFrames(
 				try:
 					# Unpack dictionary containing the image and frame metadata
 					im_dict = writeQueue.popleft()
-					frameNumber = im_dict["frameNumber"] - 1 # make 0-based
+					frameNumber = int(im_dict["frameNumber"]) - 1 # make 0-based
 					frameNumbers.append(frameNumber)
 					timestamps.append(im_dict["timestamp"])
 
 					# Check if frame number is in the current chunk range
-					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]):
+					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]+1):
 						curr_chunk += 1
 						curr_chunk_range = chunks[curr_chunk]
-						currvideo_name = str(curr_chunk_range[0]) + ext # + "_" + str(curr_chunk_range[1]) 
+						currvideo_name = str(curr_chunk_range[0]) + ext
 
 						# Close writer for previous video chunk
 						writer.close()
@@ -263,7 +266,6 @@ def WriteFrames(
 				if stopWriteQueue:
 					# Close current writer and wait
 					writer.close()
-					time.sleep(1)
 
 					# Write metadata files
 					writing = CloseWriter(
