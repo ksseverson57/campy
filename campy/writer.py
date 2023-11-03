@@ -59,8 +59,7 @@ def OpenWriter(file_name, cam_params, queue):
 						"-crf", quality,
 						"-bufsize", "20M",
 						"-maxrate", "10M",
-						"-bf:v", "4",
-						"-vsync", "0",]
+						"-bf:v", "4",]
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
@@ -106,8 +105,7 @@ def OpenWriter(file_name, cam_params, queue):
 					codec = "av1_nvenc"
 
 				if get_ffmpeg_version() == "4.2.2":
-					gpu_params.extend(["-vsync", "0"])
-					# gpu_params.extend(["-r:v", frameRate])
+					pass
 				else:
 					gpu_params.extend(["-fps_mode", "passthrough"])
 
