@@ -38,20 +38,20 @@ def OpenWriter(file_name, cam_params, queue):
 
 		# Switch between constant quality (if quality is an integer, e.g., 25 or "25") 
 		# and constant bitrate (if quality is a string with a character, e.g. "25M")
-		if cam_params["qualityMode"] is None and quality.isdigit():
+		if str(cam_params["qualityMode"])=="None" and quality.isdigit():
 			quality_mode = "constqp"
-		elif cam_params["qualityMode"] is None and not quality.isdigit():
+		elif str(cam_params["qualityMode"])=="None" and not quality.isdigit():
 			quality_mode = "cbr"
 		else:
 			quality_mode = cam_params["qualityMode"]
 
 		# Load defaults
-		gpu_params = None
+		gpu_params = []
 
 		# CPU compression
 		if cam_params["gpuID"] == -1:
 			print("Opened Video [CPU]: {}".format(full_file_name))
-			if preset is None:
+			if str(preset)=="None":
 				preset = "fast"
 			gpu_params = ["-r:v", frameRate,
 						"-preset", preset,
@@ -59,7 +59,8 @@ def OpenWriter(file_name, cam_params, queue):
 						"-crf", quality,
 						"-bufsize", "20M",
 						"-maxrate", "10M",
-						"-bf:v", "4",]
+						"-bf:v", "4",
+						"-vsync", "0",]
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
@@ -75,7 +76,7 @@ def OpenWriter(file_name, cam_params, queue):
 			# Nvidia GPU (NVENC) encoder optimized parameters
 			print("Opened Video [GPU{}]: {}     ".format(cam_params["gpuID"], full_file_name))
 			if cam_params["gpuMake"] == "nvidia":
-				if preset is None:
+				if str(preset)=="None":
 					preset = "fast"
 				gpu_params = [
 							"-preset",preset,
@@ -92,8 +93,7 @@ def OpenWriter(file_name, cam_params, queue):
 					quality_mode == "cbr"
 					quality = "10M"
 					gpu_params.extend(["-b:v",quality, ]), # avg bitrate
-					print("Could not set quality mode. \
-						Setting to default bit rate of 10M.")
+					print("Could not set quality mode. Setting to default bit rate of 10M.")
 				gpu_params.extend(["-rc",quality_mode, ])
 				
 				if cam_params["codec"] == "h264" or cam_params["codec"] == "H264":
@@ -130,7 +130,7 @@ def OpenWriter(file_name, cam_params, queue):
 			# Intel iGPU encoder (Quick Sync) optimized parameters				
 			elif cam_params["gpuMake"] == "intel":
 				print("Opened Video [iGPU]: {} ".format(full_file_name))
-				if preset is None:
+				if str(preset)=="None":
 					preset = "faster"
 				gpu_params = ["-r:v", frameRate,
 							"-bf:v", "0",
