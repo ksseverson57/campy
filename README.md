@@ -90,9 +90,9 @@ campy-acquire --help
 ```
 recTimeInSeconds: 3600
 ```
-- Campy can be configured to save "chunked" videos:
+- Campy can be configured to save seamlessly "chunked" video files:
 ```
-chunkTimeInSec: 60
+chunkLengthInSec: 60
 ```
 - Single parameters will be applied to all cameras; lists will be applied to each camera in order provided:
 ```
