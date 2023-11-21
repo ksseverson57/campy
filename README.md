@@ -1,12 +1,13 @@
 # campy
-- Python package for streaming video from multiple cameras to disk. 
-- Features real-time hardware-accelerated video compression and debayering using FFmpeg.
+- Python package for acquiring and compressing video from multiple cameras
 
-## Hardware/software
+## Hardware/Software Recommendations
 - Basler and/or FLIR machine vision camera(s)
-- Windows or Linux PC
-- (Optional) AMD or Nvidia GPU for hardware encoding (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- (Optional) Arduino/Teensy microcontroller for syncing cameras and other recordings
+- Windows, IOS, or Linux system
+- (Optional) Server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3995WX, Intel i9-10900X) can increase bandwidth over consumer CPUs with 2 memory channels (more cameras, higher resolution/frame rate)
+- (Optional) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
+- (Optional) Hardware encoder using AMD, Intel, or Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
+- (Optional) Arduino/Teensy/Pi microcontroller for syncing cameras and other devices
 
 ## Installation
 1. Update graphics drivers
