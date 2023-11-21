@@ -78,12 +78,34 @@ ffmpegPath: "/path/to/ffmpeg.exe"
 ## Usage
 
 ### Configuration
+- Edit the config.yaml file to customize your system and recording configuration
 - For Basler cameras, use the Pylon Viewer to configure and save your '.pfs' camera settings file. Examples are included in campy/configs.
-- Edit the config.yaml file to fit your system and recording configuration.
-- Several example config files are located in campy/configs.
+- Several example config files are located in campy/configs
 - For help setting config parameters:
 ```
 campy-acquire --help
+```
+
+- Campy can be configured to stop automatically after set recording time (e.g. 1 hour):
+```
+recTimeInSeconds: 3600
+```
+- Campy can be configured to save "chunked" videos:
+```
+chunkTimeInSec: 60
+```
+- Single parameters will be applied to all cameras; lists will be applied to each camera in order provided:
+```
+cameraNames: ["Camera0", "Camera1"]
+cameraSelection: [0, 1]
+cameraSettings: ["./cam_1152x1024.pfs", "./cam_1536x1152.pfs"]
+frameRate: 100
+frameWidth: [1152, 1536]
+frameHeight: [1024, 1152]
+gpuID: [0, 1]
+codec: "h265"
+quality: "8M"
+preset: "llhq"
 ```
 
 ### Camera Triggering
@@ -105,27 +127,33 @@ campy-acquire ./configs/campy_config.yaml
 ```
 
 ### Stop Recording:
-- Campy can be configured to stop automatically after set recording time (e.g. 1 hour):
-```
-recTimeInSeconds: 3600
-```
-- To manually end, press Ctrl^C. Wait until campy exits!
-- Three files, "frametimes.mat", "frametimes.npy", "frametimes.csv", "writer_frametimes.csv", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
+- To manually end the recording, press Ctrl^C. Wait until campy exits! Campy will attempt to empty the frames in the buffers before saving the video files
+- Metadata files "frametimes.mat", "frametimes.csv", "writer_frametimes.csv", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and the campy config parameters.
 
 ### Helpful Tips
-- Check that your cameras and features can be loaded in the camera vendor's GUI (e.g. Pylon Viewer for Basler).
-- Try replugging USB cables if cameras cannot be found or saving new camera features if errors arise during loading of camera settings
+- If campy drops frames, hangs upon exiting, or memory usage ramps up during acquisition, your acquisition performance may be bottlenecked
+  - See hardware recommendations above to address USB and CPU bandwidth limitations
+  - Lower frame rate or resolution of each camera to a sustainable level
+  - Try different pixel formats (e.g., "yuv420", "nv12", "rgb0")
+  - Try lowering "preset" to "fast" if GPU encoder is limiting (observe "Video Encoder" usage in Windows Task Manager or other HW monitoring utility)
+
+- Check that your cameras and features can be loaded in the camera vendor's GUI (e.g. Pylon Viewer for Basler or SpinView for FLIR).
+- If errors arise when campy loads camera settings, try replugging camera USB cables
 
 - If your compression streams are limited to 5 random cameras, it could be due to hard limit of 5 simultaneous encoding streams per system when using NVIDIA Geforce cards
 - Tesla/Quadro cards are typically unrestricted
 - NVIDIA driver patch can circumvent this restriction
 
-- To debug broken ffmpeg pipe error, up the ffmpeg log level in config.yaml:
+- To debug broken ffmpeg pipe error, set the ffmpeg log level in config.yaml:
 ```
 ffmpegLogLevel: "warning"
 ```
-- Use the command "ffmpeg" to check enabled packages. Hardware encoder support must be enabled in your ffmpeg binary.
-- Windows ffmpeg binary installed by Anaconda should have hardware encoder support enabled by default.
+or
+```
+ffmpegLogLevel: "info"
+```
+- Use the command "ffmpeg" to check enabled packages. Hardware encoder support must be enabled in your ffmpeg binary
+- Windows ffmpeg binary installed by Anaconda should support hardware encoder by default (e.g., "--enable-nvenc")
 - On Linux, you may need to compile your own ffmpeg binary to enable certain codecs, filters, or plugins:
 - Nvidia:
 ```
