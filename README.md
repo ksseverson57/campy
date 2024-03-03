@@ -42,7 +42,7 @@ pip install -U setuptools
   ```
 4. Clone or download campy to local folder:
 ```
-git clone https://github.com/ksseverson57/campy.git
+git clone -b AV1 —single-branch https://github.com/ksseverson57/campy.git
 ```
 5. Finally, install campy and its dependencies (see setup.py) by navigating to campy folder:
 ```
