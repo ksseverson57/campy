@@ -139,11 +139,11 @@ def GetFrameID(chunkData):
 
 def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
 	try:
-		if cam_params["pixelFormatInput"] == "bayer_rggb8" \
-		or cam_params["pixelFormatInput"] == "bayer_bggr8" \
-		or cam_params["pixelFormatInput"] == "gray":
-			# Convert to RGB
-			grabResult = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
+		# if cam_params["pixelFormatInput"] == "bayer_rggb8" \
+		# or cam_params["pixelFormatInput"] == "bayer_bggr8" \
+		# or cam_params["pixelFormatInput"] == "gray":
+		# 	# Convert to RGB
+		# 	grabResult = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
 
 		# Convert to Numpy array
 		img = GetImageArray(grabResult)
@@ -219,7 +219,7 @@ def ConfigureCustomImageSettings(camera, cam_params):
 		settingsConfig = True
 
 		camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
-		camera.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
+		# camera.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
 
 		cam_params = ConfigureFrameWidth(camera, cam_params)
 		cam_params = ConfigureFrameHeight(camera, cam_params)

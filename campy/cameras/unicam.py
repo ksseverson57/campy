@@ -173,7 +173,8 @@ def GrabFrames(
 				# Grab image from camera buffer if available
 				grabResult = cam.GrabFrame(camera, frameNumber)
 
-				if cam.GrabSucceeded(grabResult):
+				if grabResult.GetImageStatus() == 0:
+				# if cam.GrabSucceeded(grabResult):
 					frameNumber += 1 # first frame = 1
 					if frameNumber==1:
 						# Get the recording start date and time
