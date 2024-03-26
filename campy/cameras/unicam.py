@@ -10,6 +10,7 @@ import numpy as np
 from collections import deque
 from scipy import io as sio
 import datetime
+from campy.trigger import trigger
 
 
 def ImportCam(make):
@@ -115,13 +116,12 @@ def StartGrabbing(camera, cam_params, cam):
 	return cam.StartGrabbing(camera)
 
 
-def CountFPS(grabdata, frameNumber, timeStamp):
+def CountFPS(grabdata, frameNumber, timeElapsed):
 	if frameNumber == grabdata["numImagesToGrab"]:
 		# If last frame, clear output
 		print("\r", end="")
-	elif frameNumber % grabdata["displayFrameCounter"] == 0:
-		timeElapsed = timeStamp - grabdata["timeStamp"][0]
-		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
+	elif timeElapsed != 0 and frameNumber % grabdata["displayFrameCounter"] == 0:
+		fpsCount = round((frameNumber) / timeElapsed, 1)
 		print('Collected {} frames at {} fps for {} sec.'\
 			.format(frameNumber, fpsCount, round(timeElapsed, 1)),
 			end="\r")
@@ -156,7 +156,7 @@ def GrabFrames(
 	closed = False
 	frameNumber = int(0)
 
-	# If pixelformat is bayer, first convert to RGB
+	# If pixelformat is bayer, initialize bayer-RGB converter
 	if cam_params["pixelFormatInput"].find("bayer") != -1:
 		converter = cam.GetConverter()
 	else:
@@ -165,7 +165,13 @@ def GrabFrames(
 	while(True):
 		if stopGrabQueue or frameNumber >= grabdata["numImagesToGrab"]:
 			# Get the recording end date and time
-			grabdata["dateTimeEnd"] = datetime.datetime.now()
+			if grabbing:
+				# First send command to microcontroller to stop triggers
+				if cam_params["startArduino"] and "triggers" in cam_params.keys():
+					trigger.StopTriggers(cam_params["triggers"], cam_params)
+					print("Closing serial connection...", flush=True)
+				grabdata["dateTimeEnd"] = datetime.datetime.now()
+
 			grabbing = False
 
 		if grabbing:
@@ -174,18 +180,18 @@ def GrabFrames(
 				grabResult = cam.GrabFrame(camera, frameNumber)
 
 				if cam.GrabSucceeded(grabResult):
-					frameNumber += 1 # first frame = 1
-					if frameNumber==1:
-						# Get the recording start date and time
-						grabdata["dateTimeStart"] = datetime.datetime.now()
 
 					# Append timeStamp and frameNumber to grabdata
 					timeStamp = cam.GetTimeStamp(grabResult)
 
-					grabdata['frameNumber'].append(frameNumber)
-					grabdata['timeStamp'].append(timeStamp)
-					CountFPS(grabdata, frameNumber, timeStamp)
-					timeElapsed = timeStamp - grabdata["timeStamp"][0]
+					# Get the recording start datetime and timestamp
+					if frameNumber == 0:
+						grabdata["dateTimeStart"] = datetime.datetime.now()
+						grabdata["timeStart"] = timeStamp
+
+					# Compute time elapsed and count fps
+					timeElapsed = timeStamp - grabdata["timeStart"]
+					CountFPS(grabdata, frameNumber, timeElapsed)
 
 					# Queue copy of RGB image for display
 					if frameNumber % grabdata["frameRatio"] == 0:
@@ -203,6 +209,9 @@ def GrabFrames(
 						writeQueue.append(im_dict)
 						cam.ReleaseFrame(grabResult)
 
+					# Count current frame (first frame = 0)
+					frameNumber = frameNumber + 1
+
 				else:
 					# Release grabbed frame object to free memory buffer **Test with 
 					print('Grab failed for camera {}, frame {}'.format(cam_params["n_cam"] + 1, frameNumber))
@@ -216,7 +225,9 @@ def GrabFrames(
 			# If frame grabbing is complete, initiate closing sequence
 			if not closing:
 				# Close the camera, save metadata, and tell writer and display to close
-				CountFPS(grabdata, frameNumber, timeStamp)
+				CountFPS(grabdata, frameNumber, timeElapsed)
+				grabdata["timeEnd"] = timeElapsed
+				grabdata["frameNumber"] = frameNumber
 				SaveMetadata(cam_params, grabdata)
 				dispQueue.append("STOP")
 				stopWriteQueue.append("STOP")
@@ -230,47 +241,23 @@ def GrabFrames(
 					time.sleep(0.01)
 
 
+# Move timestamp saving to writer process/thread
 def SaveMetadata(cam_params, grabdata):
 	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
 
 	try:
-		# Zero timeStamps
-		timeFirstGrab = grabdata["timeStamp"][0]
-		grabdata["timeStamp"] = [i - timeFirstGrab for i in grabdata["timeStamp"]]
-
 		# Get the frame and time counts to save into metadata
-		frame_count = grabdata['frameNumber'][-1]
-		time_count = grabdata['timeStamp'][-1]
+		frame_count = grabdata['frameNumber']
+		time_count = grabdata['timeEnd']
 		fps_count = round((frame_count - 1) / time_count, 3)
 		print('{} grabbed {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
 
 		meta = cam_params
 
-		# Save frame data to npy file
-		npy_filename = os.path.join(full_folder_name, 'frametimes.npy')
-		x = np.array([grabdata['frameNumber'], grabdata['timeStamp']])
-		np.save(npy_filename,x)
-
-		# Save frame data to formatted csv file
-		framedata_filename = os.path.join(full_folder_name, 'frametimes.csv')
-		x = x.T
-		x[:,0] = np.round(x[:,0])
-		np.savetxt(framedata_filename, x, 
-			delimiter=",", 
-			header="frameNumber,timestamp (s)",
-			fmt="%i,%1.4e")
-
-		# Also save frame data to MATLAB file
-		mat_filename = os.path.join(full_folder_name, 'frametimes.mat')
-		matdata = {};
-		matdata['frameNumber'] = grabdata['frameNumber']
-		matdata['timeStamp'] = grabdata['timeStamp']
-		sio.savemat(mat_filename, matdata, do_compression=True)
-
 		# Save parameters and recording metadata to csv spreadsheet
 		csv_filename = os.path.join(full_folder_name, 'metadata.csv')
-		meta['totalFrames'] = grabdata['frameNumber'][-1]
-		meta['totalTime'] = grabdata['timeStamp'][-1]
+		meta['totalFrames'] = int(grabdata['frameNumber'])
+		meta['totalTime'] = grabdata['timeEnd']
 		meta['dateStart'] = grabdata['dateTimeStart'].strftime("%Y/%m/%d")
 		meta['dateEnd'] = grabdata['dateTimeEnd'].strftime("%Y/%m/%d")
 		meta['timeStart'] = grabdata['dateTimeStart'].strftime("%H:%M:%S") # :%f # microseconds
