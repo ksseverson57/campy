@@ -1,15 +1,20 @@
 """
 Video writer class
 """
-import subprocess as sp
 from imageio_ffmpeg import write_frames, get_ffmpeg_version
 import os, sys, time, logging
 from campy.utils.utils import QueueKeyboardInterrupt
 from scipy import io as sio
 import numpy as np
 import math
+import datetime
 
-def OpenWriter(file_name, cam_params, queue):
+def OpenWriter(
+	file_name, 
+	cam_params, 
+	queue,
+):
+
 	'''
 	Initiate opening sequence for video writer
 	'''
@@ -53,14 +58,14 @@ def OpenWriter(file_name, cam_params, queue):
 			print("Opened Video [CPU]: {}".format(full_file_name))
 			if str(preset)=="None":
 				preset = "fast"
-			gpu_params = ["-r:v", frameRate,
-						"-preset", preset,
-						"-tune", "fastdecode",
-						"-crf", quality,
-						"-bufsize", "20M",
-						"-maxrate", "10M",
-						"-bf:v", "4",
-						"-vsync", "0",]
+			gpu_params = ["-r:v",frameRate,
+						"-preset",preset,
+						"-tune","fastdecode",
+						"-crf",quality,
+						"-bufsize","20M",
+						"-maxrate","10M",
+						"-bf:v","4",
+						"-vsync","0",]
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
@@ -70,6 +75,7 @@ def OpenWriter(file_name, cam_params, queue):
 				codec = "libx265"
 			elif cam_params["codec"] == "av1":
 				codec = "libaom-av1"
+
 
 		# GPU compression
 		else:
@@ -83,10 +89,10 @@ def OpenWriter(file_name, cam_params, queue):
 							"-bf:v","0", # B-frame spacing "0"-"2" less intensive for encoding
 							"-g",g, # I-frame spacing
 							"-gpu",gpuID,
-							] 
+							]
 
 				if quality_mode == "cbr":
-					gpu_params.extend(["-b:v",quality, ]), # variable/avg bitrate
+					gpu_params.extend(["-b:v",quality, ]), # avg bitrate
 				elif quality_mode == "constqp":
 					gpu_params.extend(["-qp",quality, ]), # constant quality
 				else:
@@ -104,10 +110,11 @@ def OpenWriter(file_name, cam_params, queue):
 				elif cam_params["codec"] == "av1" or cam_params["codec"] == "AV1":
 					codec = "av1_nvenc"
 
-				if get_ffmpeg_version() == "4.2.2":
-					pass
+				if get_ffmpeg_version() <= "4.2.4":
+					gpu_params.extend(["-vsync","0", ])
 				else:
-					gpu_params.extend(["-fps_mode", "passthrough"])
+					gpu_params.extend(["-fps_mode","passthrough", ])
+
 
 			# AMD GPU (AMF/VCE) encoder optimized parameters
 			elif cam_params["gpuMake"] == "amd":
@@ -127,9 +134,9 @@ def OpenWriter(file_name, cam_params, queue):
 				elif cam_params["codec"] == "h265":
 					codec = "hevc_amf"
 
-			# Intel iGPU encoder (Quick Sync) optimized parameters				
+			# Intel dGPU/iGPU (Quick Sync) encoder optimized parameters				
 			elif cam_params["gpuMake"] == "intel":
-				print("Opened Video [iGPU]: {} ".format(full_file_name))
+				print("Opened Video [GPU{}]: {} ".format(full_file_name))
 				if str(preset)=="None":
 					preset = "faster"
 				gpu_params = ["-r:v", frameRate,
@@ -185,15 +192,18 @@ def WriteFrames(
 	writeQueue, 
 	stopGrabQueue, 
 	stopReadQueue, 
-	stopWriteQueue
+	stopWriteQueue,
+	stampQueue,
 ):
+	ext = ".mp4"
+
 	# Initialize counters
 	writeCount = int(0)
 	dropCount = int(0)
-	frameNumbers = list()
-	timestamps = list()
-	ext = ".mp4"
 	curr_chunk = int(0)
+	timestamps = list()
+	frameNumbers = list()
+	frameData = dict()
 
 	# Initialize video chunks
 	cam_params["chunkLengthInFrames"] = math.ceil(
@@ -207,19 +217,17 @@ def WriteFrames(
 		)
 	chunk_size = cam_params["chunkLengthInFrames"]
 
-	# Compile array of all chunk frame start and end indices
-	chunk_starts = np.arange(0, num_chunks*chunk_size, chunk_size)
-	chunk_ends = np.arange(chunk_size-1, recTimeInFrames, chunk_size)
-	if chunk_ends[-1] != recTimeInFrames:
-		if chunk_starts.shape == chunk_ends.shape:
-			chunk_ends[-1] = recTimeInFrames
-		else:
-			chunk_ends = np.append(chunk_ends, recTimeInFrames)
-	chunks = np.stack([chunk_starts, chunk_ends], axis=1)
+	# Set frame range of current chunk
+	curr_chunk_range = np.asarray([0, chunk_size-1], dtype=np.long)
 
-	# Set frame range to current chunk
-	curr_chunk_range = chunks[curr_chunk]
-	currvideo_name = str(curr_chunk_range[0]) + ext
+	# Initialize video folder and filename data
+	folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
+	frameData["saveFolder"] = folder_name
+
+	dt = f"{datetime.datetime.now(tz=None):%Y%m%d_%H%M%S}"
+	filename = dt + "_" + str(curr_chunk_range[0]) + "-" + str(curr_chunk_range[1])
+	currvideo_name = filename + ext
+	frameData["filename"] = filename
 
 	# Initialize first ffmpeg video writer
 	writer, writing, readQueue = OpenWriter(currvideo_name, cam_params, stopGrabQueue)
@@ -231,22 +239,49 @@ def WriteFrames(
 				try:
 					# Unpack dictionary containing the image and frame metadata
 					im_dict = writeQueue.popleft()
-					frameNumber = int(im_dict["frameNumber"]) - 1 # make 0-based
+					frameNumber = int(im_dict["frameNumber"])
 					frameNumbers.append(frameNumber)
 					timestamps.append(im_dict["timestamp"])
 
-					# Check if frame number is in the current chunk range
-					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]+1):
-						curr_chunk += 1
-						curr_chunk_range = chunks[curr_chunk]
-						currvideo_name = str(curr_chunk_range[0]) + ext
+					# Check if frame number is not in the current chunk range, 
+					# otherwise open new video chunk
+					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]):
+						
+						# Save timestamps and frameNumbers, saved as dictionary in queue
+						frameData = dict()
+						frameData["frameNumbers"] = frameNumbers
+						frameData["timestamps"] = timestamps
+						frameData["saveFolder"] = folder_name
+						frameData["filename"] = filename
+						stampQueue.append(frameData)
 
-						# Close writer for previous video chunk
-						writer.close()
+						curr_chunk = curr_chunk + 1
+						if curr_chunk != num_chunks:
 
-						# Initialize next video chunk
-						if curr_chunk in range(0, num_chunks):
-							writer, _, _ = OpenWriter(currvideo_name, cam_params, stopGrabQueue)
+							# Reset timestamp and frameNumbers list
+							timestamps = list()
+							frameNumbers = list()
+
+							# Set chunk frame start and end indices
+							curr_chunk_range = curr_chunk_range + chunk_size
+							if curr_chunk_range[-1] > recTimeInFrames:
+								curr_chunk_range[-1] = recTimeInFrames - 1
+
+							# Name the video for next chunk (date_time_framestart_frameend.ext)
+							dt = f"{datetime.datetime.now(tz=None):%Y%m%d_%H%M%S}"
+							filename = dt + "_" + str(curr_chunk_range[0]) + "-" + str(curr_chunk_range[1])
+							currvideo_name = filename + ext
+
+							# Close writer for previous video chunk
+							writer.close()
+
+							# Initialize next video chunk
+							if curr_chunk in range(0, num_chunks):
+								writer, _, _ = OpenWriter(
+									currvideo_name, 
+									cam_params, 
+									stopGrabQueue
+									)
 
 					# Send image array to writer
 					writer.send(im_dict["array"])
@@ -262,6 +297,7 @@ def WriteFrames(
 			else:
 				# Once queue is depleted and grabbing stops, close the writer
 				if stopWriteQueue:
+
 					# Close current writer and wait
 					writer.close()
 
@@ -278,9 +314,52 @@ def WriteFrames(
 				time.sleep(0.001)
 
 
+def SaveTimestamps(
+	stampQueue
+):
+	saving = True
+
+	while(saving):
+		if stampQueue:
+			try:
+				frameData = stampQueue.popleft()
+
+				# If stop message received, exit the loop
+				if isinstance(stampQueue, str):
+					saving = False
+					break
+
+				# Otherwise save timestamps and frameNumbers
+				else:
+					# Save frame data to formatted csv file
+					framedata_filename = os.path.join(frameData["saveFolder"], frameData["filename"] + "_timestamps.csv")
+					x = np.asarray([frameData["frameNumbers"],frameData["timestamps"]], dtype=np.double)
+					x = x.T
+					np.savetxt(os.path.normpath(framedata_filename), x, 
+						delimiter=",", 
+						header="frameNumber, timestamp (s)",
+						fmt="%i,%1.4e")
+
+					# Also save frame data to MATLAB file
+					mat_filename = os.path.join(frameData["saveFolder"], frameData["filename"] + "_timestamps.mat")
+					sio.savemat(os.path.normpath(mat_filename), frameData, do_compression=True)
+
+			except KeyboardInterrupt:
+				break
+
+			except Exception as e:
+				print(e)
+				time.sleep(0.01)
+
+		else:
+			time.sleep(0.01)
+
+	time.sleep(0.01)
+
+
 def CloseWriter(
 	cam_params, 
-	stopReadQueue, 
+	stopQueue, 
 	writeCount, 
 	dropCount, 
 	frameNumbers, 
@@ -291,7 +370,7 @@ def CloseWriter(
 	'''
 
 	# Send stop signal to frame grabber
-	stopReadQueue.append("STOP")
+	stopQueue.append("STOP")
 	time.sleep(1)
 	print('{} wrote {} and dropped {} frames.'.format(
 		cam_params["cameraName"],
@@ -299,12 +378,12 @@ def CloseWriter(
 		dropCount))
 
 	# Convert appended lists to numpy arrays and save to mat file
-	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
-	mat_filename = os.path.join(full_folder_name, 'writer_frametimes.mat')
-	matdata = {};
-	matdata['frameNumber'] = np.array(frameNumbers)
-	matdata['timeStamp'] = np.array(timestamps)
-	sio.savemat(mat_filename, matdata, do_compression=True)
+	# full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
+	# mat_filename = os.path.join(full_folder_name, 'writer_frametimes.mat')
+	# matdata = {};
+	# matdata['frameNumber'] = np.array(frameNumbers)
+	# matdata['timeStamp'] = np.array(timestamps)
+	# sio.savemat(mat_filename, matdata, do_compression=True)
 
 	time.sleep(1)
 
