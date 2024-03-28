@@ -9,6 +9,8 @@
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user (Ctrl+C)
 - Unified display window across camera APIs using opencv
 - Added seamless chunking to split video into multiple files (see help for "chunkLengthInFrames")
+- By default, video files are now saved with unique datetime to prevent overwriting
+- Timestamps are now saved with each video chunk
 - Replaced config parameter "chunkLengthInFrames" with "displayFrameCounter" for reporting FPS and recording progress
 - Added support for non-integer frame rates \
   Trigger module now passes inter-frame interval in microseconds rather than frame rate to microcontroller \
