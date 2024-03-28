@@ -20,11 +20,17 @@
 
 ## Hardware/Software Recommendations
 - Basler and/or FLIR machine vision camera(s)
-- Windows, IOS, or Linux system
-- (Optional) Server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3995WX, Intel i9-10900X) can increase bandwidth over consumer CPUs with 2 memory channels (more cameras, higher resolution/frame rate)
+- Windows, Mac, or Linux system
+- (Recommended) For multi-camera configurations, server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3955WX, Intel i9-10900X) can increase camera throughput over consumer CPUs with 2 memory channels (e.g., Ryzen 7950X, i9-14900K)
 - (Optional) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
-- (Optional) Hardware encoder using AMD, Intel, or Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- (Optional) Arduino/Teensy/Pi microcontroller for syncing cameras and other devices
+- (Optional) Hardware encoder using Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix) or AMD/Intel GPU
+- (Optional) Arduino/Teensy/Raspberry Pi microcontroller for syncing cameras and other devices
+
+## Tested Hardware Configurations
+| Lab | Engineer | Camera(s) | Resolution (WxH) | Color | Frame Rate | Trigger | Avg Bit Rate/Camera | Total Video Size | SI | OS | CPU(s) | # Memory Channels | Motherboard | GPU(s) | #NVENC | USB | 
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Wang Lab (MIT) | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100.0 | Teensy 4.3 | 4 Mb/s | ~9 GB/hr | ASL | Windows 10 | Intel i9-9900X | 4 | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
+| Wang Lab (MIT) | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150.0 | Teensy 4.3 | 10 Mb/s | ~15 GB/hr | Supermicro | Windows 10 | AMD TR-3955WX | 8 | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
 
 ## Installation
 1. Update graphics drivers
