@@ -5,7 +5,7 @@
 - Added constant bitrate (cbr) mode \
   With cbr, video files can be compressed consistently with minimal loss in visual quality \
   However, constant quality (constqp) mode can compress with fewer artifacts in frames with rapid motion
-- Integrated Basler pypylon zero-copy to reduce overhead
+- Integrated Basler pypylon zero-copy to reduce CPU overhead
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user (Ctrl+C)
 - Unified display window across camera APIs using opencv
 - Added seamless chunking to split video into multiple files (see help for "chunkLengthInFrames")
@@ -24,15 +24,21 @@
 - Basler and/or FLIR machine vision camera(s)
 - Windows, Mac, or Linux system
 - (Recommended) For multi-camera configurations, server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3955WX, Intel i9-10900X) can increase camera throughput over consumer CPUs with 2 memory channels (e.g., Ryzen 7950X, i9-14900K)
-- (Optional) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
-- (Optional) Hardware encoder using Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix) or AMD/Intel GPU
-- (Optional) Arduino/Teensy/Raspberry Pi microcontroller for syncing cameras and other devices
+- (Recommended) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
+- (Recommended) Hardware encoder using Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix) or AMD/Intel GPU
+- (Recommended) Arduino/Teensy/Raspberry Pi microcontroller for syncing cameras and other devices
 
-## Tested Hardware Configurations
-| Lab | Engineer | Camera(s) | Resolution (WxH) | Color | Frame Rate | Trigger | Avg Bit Rate/Camera | Total Video Size | SI | OS | CPU(s) | # Memory Channels | Motherboard | GPU(s) | #NVENC | USB | 
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Wang Lab (MIT) | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100.0 | Teensy 4.3 | 4 Mb/s | ~9 GB/hr | ASL | Windows 10 | Intel i9-9900X | 4 | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
-| Wang Lab (MIT) | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150.0 | Teensy 4.3 | 10 Mb/s | ~15 GB/hr | Supermicro | Windows 10 | AMD TR-3955WX | 8 | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
+## Tested Camera Configurations
+| Lab | Builder | Rig | Cam(s) | WxH | Color | FPS | Trig | Bit Rate | Raw Size | Compressed Size | Compression
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Wang Lab (MIT) | Kyle Severson | 6-Cam Cylinder | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~8 TB/hr | ~8 GB/hr | ~1000X |
+| Wang Lab (MIT) | Kian Caplan | 4-Cam Box | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
+
+## Tested PC Configurations
+| Lab | Rig | System | OS | CPU | # Memory Channels | Motherboard | GPU(s) | #NVENC | USB | 
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Wang Lab (MIT) | 6-Cam Cylinder | ASL | Windows 10 | Intel i9-9900X | 4 | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
+| Wang Lab (MIT) | 4-Cam Box | Supermicro | Windows 10 | AMD Threadripper Pro 3955WX | 8 | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
 
 ## Installation
 1. Update graphics drivers
