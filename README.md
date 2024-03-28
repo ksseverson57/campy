@@ -29,16 +29,16 @@
 - (Recommended) Arduino/Teensy/Raspberry Pi microcontroller for syncing cameras and other devices
 
 ## Tested Camera Configurations
-| Lab | Builder | Rig | Cam(s) | WxH | Color | FPS | Trig | Bit Rate | Raw Size | Compressed Size | Compression
+| Lab | Rig | Builder | Cam(s) | WxH | Color | FPS | Trig | Bit Rate | Raw Size | Compressed Size | Compression
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Fan Wang (MIT) | Kyle Severson | 6-Cam Cylinder | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~8 TB/hr | ~8 GB/hr | ~1000X |
-| Fan Wang (MIT) | Kian Caplan | 4-Cam Box | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
+| Fan Wang (MIT) | 6-Cam Cylinder | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~7.5 TB/hr | ~7.5 GB/hr | ~1000X |
+| Fan Wang (MIT) | 4-Cam Box | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
 
 ## Tested PC Configurations
-| Lab | Rig | System | OS | CPU | # Memory Channels | Motherboard | GPU(s) | #NVENC | USB | 
+| Lab | Rig | System Integrator | OS | CPU | Memory Bandwidth | Motherboard | GPU(s) | #NVENC | USB | 
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Fan Wang (MIT) | 6-Cam Cylinder | ASL | Windows 10 | Intel i9-9900X | 4 | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
-| Fan Wang (MIT) | 4-Cam Box | Supermicro | Windows 10 | AMD Threadripper Pro 3955WX | 8 | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
+| Fan Wang (MIT) | 6-Cam Cylinder | ASL (Marquis C532-SR8) | Windows 10 | Intel i9-9900X | 4-Channel | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
+| Fan Wang (MIT) | 4-Cam Box | Supermicro (AS-5014A-TT) | Windows 10 | AMD Threadripper PRO 3955WX | 8-Channel | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
 
 ## Installation
 1. Update graphics drivers
