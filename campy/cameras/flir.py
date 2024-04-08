@@ -719,12 +719,11 @@ def ConfigureTrigger(camera, cam_params):
 		if cameraTrigger == 'software' or cameraTrigger == 'Software' or cameraTrigger == 'SOFTWARE':
 			camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)
 			print("Trigger source set to software...")
-		elif cameraTrigger == 'none' or cameraTrigger == 'None' or cameraTrigger == 'NONE':
+		elif str(cameraTrigger)=="None":
 			camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 			print("Trigger source set to None...")
 			return cam_params
 		else:
-			# eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_%s)" % cameraTrigger)
 			eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_{})".format(cameraTrigger))
 			print("Trigger source set to {}...".format(cameraTrigger))
 
@@ -732,8 +731,6 @@ def ConfigureTrigger(camera, cam_params):
 		# Once the appropriate trigger source has been set, turn trigger mode
 		# on in order to retrieve images using the trigger.
 		camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
-
-		# cam_params["triggerSource"] = camera.TriggerMode.GetValue()
 		cam_params["configTrig"] = True
 
 	except Exception as e:

@@ -157,7 +157,7 @@ def GrabFrames(
 	frameNumber = int(0)
 
 	# If pixelformat is bayer, initialize bayer-RGB converter
-	if cam_params["pixelFormatInput"].find("bayer") != -1:
+	if cam_params["cameraMake"] == "basler" and cam_params["pixelFormatInput"].find("bayer") != -1:
 		converter = cam.GetConverter()
 	else:
 		converter = None
@@ -179,43 +179,36 @@ def GrabFrames(
 				# Grab image from camera buffer if available
 				grabResult = cam.GrabFrame(camera, frameNumber)
 
-				if cam.GrabSucceeded(grabResult):
+				# Append timeStamp and frameNumber to grabdata
+				timeStamp = cam.GetTimeStamp(grabResult)
 
-					# Append timeStamp and frameNumber to grabdata
-					timeStamp = cam.GetTimeStamp(grabResult)
+				# Get the recording start datetime and timestamp
+				if frameNumber == 0:
+					grabdata["dateTimeStart"] = datetime.datetime.now()
+					grabdata["timeStart"] = timeStamp
 
-					# Get the recording start datetime and timestamp
-					if frameNumber == 0:
-						grabdata["dateTimeStart"] = datetime.datetime.now()
-						grabdata["timeStart"] = timeStamp
+				# Compute time elapsed and count fps
+				timeElapsed = timeStamp - grabdata["timeStart"]
+				CountFPS(grabdata, frameNumber, timeElapsed)
 
-					# Compute time elapsed and count fps
-					timeElapsed = timeStamp - grabdata["timeStart"]
-					CountFPS(grabdata, frameNumber, timeElapsed)
+				# Queue copy of RGB image for display
+				if frameNumber % grabdata["frameRatio"] == 0:
+					cam.DisplayImage(cam_params, dispQueue, grabResult, converter)
 
-					# Queue copy of RGB image for display
-					if frameNumber % grabdata["frameRatio"] == 0:
-						cam.DisplayImage(cam_params, dispQueue, grabResult, converter)
-
-					# Queue image array from grab result
-					if cam_params["zeroCopy"]:
-						# Use context manager to pass memory pointer for zero-copy 
-						with cam.GetImageArray(grabResult) as img:
-							im_dict = PackDictionary(img, frameNumber, timeElapsed)
-							writeQueue.append(im_dict)
-					else:
-						img = cam.CopyImageArray(grabResult)
+				# Queue image array from grab result
+				if cam_params["zeroCopy"]:
+					# Use context manager to pass memory pointer for zero-copy 
+					with cam.GetImageArray(grabResult) as img:
 						im_dict = PackDictionary(img, frameNumber, timeElapsed)
 						writeQueue.append(im_dict)
-						cam.ReleaseFrame(grabResult)
-
-					# Count current frame (first frame = 0)
-					frameNumber = frameNumber + 1
-
 				else:
-					# Release grabbed frame object to free memory buffer **Test with 
-					print('Grab failed for camera {}, frame {}'.format(cam_params["n_cam"] + 1, frameNumber))
+					img = cam.CopyImageArray(grabResult)
+					im_dict = PackDictionary(img, frameNumber, timeElapsed)
+					writeQueue.append(im_dict)
 					cam.ReleaseFrame(grabResult)
+
+				# Count current frame (first frame = 0)
+				frameNumber = frameNumber + 1
 
 			except Exception as e:
 				if cam_params["cameraDebug"]:
