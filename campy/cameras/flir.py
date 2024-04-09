@@ -4,6 +4,7 @@ import PySpin
 from campy.cameras import unicam
 import os, sys, time, logging
 import numpy as np
+import cv2
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -137,16 +138,22 @@ def GetFrameID(chunkData):
 	return chunkData.GetFrameID()
 
 
-def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
+def DisplayImage(cam_params, dispQueue, grabResult, converter=None): 
 	try:
-		if cam_params["pixelFormatInput"] == "bayer_rggb8" \
-		or cam_params["pixelFormatInput"] == "bayer_bggr8" \
-		or cam_params["pixelFormatInput"] == "gray":
-			# Convert to RGB
-			grabResult = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
+		# Convert color to RGB for display in opencv
+		if str(converter) == "None":
+			# Convert to Numpy array
+			img = GetImageArray(grabResult)
 
-		# Convert to Numpy array
-		img = GetImageArray(grabResult)
+			# Use OpenCV color converter For older PySpin versions (<2.7)
+			if cam_params["pixelFormatInput"] == "bayer_rggb8":
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_RG2RGB)
+			elif cam_params["pixelFormatInput"] == "bayer_bggr8":
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2RGB)
+			elif cam_params["pixelFormatInput"] == "gray":
+				img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+		else:
+			img = ConvertBayerToRGB(converter, grabResult)
 
 		# Downsample image
 		img = img[::cam_params["displayDownsample"], ::cam_params["displayDownsample"]]
@@ -772,3 +779,18 @@ def PrintDeviceInfo(nodemap, cam_params):
 	except Exception as e:
 		logging.error("Caught error at cameras/flir.py PrintDeviceInfo: {}".format(e))
 
+
+def GetConverter():
+	# PySpin introduced "ImageProcessor" class 
+	# instead of ImagePtr.Convert
+	try:
+		converter = PySpin.ImageProcessor()
+		converter.SetColorProcessing(PySpin.SPINNAKER_COLOR_PROCESSING_ALGORITHM_HQ_LINEAR)
+	except:
+		converter = None
+	return converter
+
+
+def ConvertBayerToRGB(converter, grabResult):
+	img = converter.Convert(grabResult, PySpin.PixelFormat_RGB8)
+	return img.GetNDArray()

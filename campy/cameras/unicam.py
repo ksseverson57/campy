@@ -157,7 +157,7 @@ def GrabFrames(
 	frameNumber = int(0)
 
 	# If pixelformat is bayer, initialize bayer-RGB converter
-	if cam_params["cameraMake"] == "basler" and cam_params["pixelFormatInput"].find("bayer") != -1:
+	if cam_params["pixelFormatInput"].find("bayer") != -1:
 		converter = cam.GetConverter()
 	else:
 		converter = None
