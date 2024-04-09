@@ -110,10 +110,14 @@ def OpenWriter(
 				elif cam_params["codec"] == "av1" or cam_params["codec"] == "AV1":
 					codec = "av1_nvenc"
 
-				if get_ffmpeg_version() <= "4.2.4":
-					gpu_params.extend(["-vsync","0", ])
-				else:
-					gpu_params.extend(["-fps_mode","passthrough", ])
+				# if get_ffmpeg_version() <= "4.5.4":
+				# 	gpu_params.extend(["-vsync","0", ])
+				# else:
+				# 	gpu_params.extend(["-fps_mode","passthrough", ])
+
+				# Vsync is deprecated (-fps_mode preferred), but can still be used
+				# Better for compatibility with older ffmpeg versions
+				gpu_params.extend(["-vsync","0", ])
 
 
 			# AMD GPU (AMF/VCE) encoder optimized parameters
@@ -240,12 +244,10 @@ def WriteFrames(
 					# Unpack dictionary containing the image and frame metadata
 					im_dict = writeQueue.popleft()
 					frameNumber = int(im_dict["frameNumber"])
-					frameNumbers.append(frameNumber)
-					timestamps.append(im_dict["timestamp"])
 
 					# Check if frame number is not in the current chunk range, 
 					# otherwise open new video chunk
-					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]):
+					if frameNumber not in range(curr_chunk_range[0], curr_chunk_range[1]+1):
 						
 						# Save timestamps and frameNumbers, saved as dictionary in queue
 						frameData = dict()
@@ -283,6 +285,10 @@ def WriteFrames(
 									stopGrabQueue
 									)
 
+					# Append timestamp
+					frameNumbers.append(frameNumber)
+					timestamps.append(im_dict["timestamp"])
+
 					# Send image array to writer
 					writer.send(im_dict["array"])
 					writeCount += 1
@@ -297,6 +303,14 @@ def WriteFrames(
 			else:
 				# Once queue is depleted and grabbing stops, close the writer
 				if stopWriteQueue:
+
+					# Save timestamps and frameNumbers, saved as dictionary in queue
+					frameData = dict()
+					frameData["frameNumbers"] = frameNumbers
+					frameData["timestamps"] = timestamps
+					frameData["saveFolder"] = folder_name
+					frameData["filename"] = filename
+					stampQueue.append(frameData)
 
 					# Close current writer and wait
 					writer.close()
