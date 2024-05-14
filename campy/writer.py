@@ -58,21 +58,25 @@ def OpenWriter(
 			print("Opened Video [CPU]: {}".format(full_file_name))
 			if str(preset)=="None":
 				preset = "fast"
-			gpu_params = ["-r:v",frameRate,
+			gpu_params = [
 						"-preset",preset,
 						"-tune","fastdecode",
 						"-crf",quality,
 						"-bufsize","20M",
 						"-maxrate","10M",
 						"-bf:v","4",
-						"-vsync","0",]
+						]
+
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
+
 			if cam_params["codec"] == "h264":
 				codec = "libx264"
 				gpu_params.extend(["-x264-params", "nal-hrd=cbr"])
+
 			elif cam_params["codec"] == "h265":
 				codec = "libx265"
+
 			elif cam_params["codec"] == "av1":
 				codec = "libaom-av1"
 
@@ -89,48 +93,52 @@ def OpenWriter(
 							"-bf:v","0", # B-frame spacing "0"-"2" less intensive for encoding
 							"-g",g, # I-frame spacing
 							"-gpu",gpuID,
+							# "-vf","atadenoise=0.02:0.04:0.02:0.04:0.02:0.04:5:all:p",
 							]
 
+				# Add quality mode (qp = constant quality; cbr = constant bit rate; vbr = variable bit rate)
 				if quality_mode == "cbr":
 					gpu_params.extend(["-b:v",quality, ]), # avg bitrate
+				
+				elif quality_mode == "vbr":
+					if quality.isdigit():
+						gpu_params.extend(["-q:v",quality, ]), # variable bitrate
+					else:
+						gpu_params.extend(["-q:v",quality, "-maxrate",quality]), # variable bitrate
+				
 				elif quality_mode == "constqp":
 					gpu_params.extend(["-qp",quality, ]), # constant quality
+				
 				else:
 					quality_mode == "cbr"
 					quality = "10M"
 					gpu_params.extend(["-b:v",quality, ]), # avg bitrate
 					print("Could not set quality mode. Setting to default bit rate of 10M.")
+
 				gpu_params.extend(["-rc",quality_mode, ])
 				
 				if cam_params["codec"] == "h264" or cam_params["codec"] == "H264":
 					codec = "h264_nvenc"
+				
 				if cam_params["codec"] == "h265" or cam_params["codec"] == "H265" \
 					or cam_params["codec"] == "hevc" or cam_params["codec"] == "HEVC":
 					codec = "hevc_nvenc"
+				
 				elif cam_params["codec"] == "av1" or cam_params["codec"] == "AV1":
 					codec = "av1_nvenc"
-
-				# if get_ffmpeg_version() <= "4.5.4":
-				# 	gpu_params.extend(["-vsync","0", ])
-				# else:
-				# 	gpu_params.extend(["-fps_mode","passthrough", ])
-
-				# Vsync is deprecated (-fps_mode preferred), but can still be used
-				# Better for compatibility with older ffmpeg versions
-				gpu_params.extend(["-vsync","0", ])
-
 
 			# AMD GPU (AMF/VCE) encoder optimized parameters
 			elif cam_params["gpuMake"] == "amd":
 				print("Opened Video [GPU{}]: {} ".format(cam_params["gpuID"], full_file_name))
 				# Preset not supported by AMF
-				gpu_params = ["-r:v", frameRate,
+				gpu_params = [
 							"-usage", "lowlatency",
 							"-rc", "cqp", # constant quantization parameter
 							"-qp_i", quality,
 							"-qp_p", quality,
 							"-qp_b", quality,
-							"-hwaccel_device", gpuID,] # "-hwaccel", "auto",
+							"-hwaccel_device", gpuID,
+							]
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "yuv420p"
 				if cam_params["codec"] == "h264":
@@ -138,15 +146,16 @@ def OpenWriter(
 				elif cam_params["codec"] == "h265":
 					codec = "hevc_amf"
 
-			# Intel dGPU/iGPU (Quick Sync) encoder optimized parameters				
+			# Intel iGPU (Quick Sync) encoder optimized parameters
 			elif cam_params["gpuMake"] == "intel":
 				print("Opened Video [GPU{}]: {} ".format(full_file_name))
 				if str(preset)=="None":
 					preset = "faster"
-				gpu_params = ["-r:v", frameRate,
+				gpu_params = [
 							"-bf:v", "0",
 							"-preset", preset,
-							"-q", str(int(quality)+1),]
+							"-q", str(int(quality)+1),
+							]
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "nv12"
 				if cam_params["codec"] == "h264":
@@ -210,19 +219,13 @@ def WriteFrames(
 	frameData = dict()
 
 	# Initialize video chunks
-	cam_params["chunkLengthInFrames"] = math.ceil(
-		cam_params["chunkLengthInSec"] * cam_params["frameRate"]
-		)
-	recTimeInFrames = math.ceil(
-		cam_params["recTimeInSec"] * cam_params["frameRate"]
-		)
-	num_chunks = math.ceil(
-		cam_params["recTimeInSec"] / cam_params["chunkLengthInSec"]
-		)
+	cam_params["chunkLengthInFrames"] = math.ceil(cam_params["chunkLengthInSec"] * cam_params["frameRate"])
+	recTimeInFrames = math.ceil(cam_params["recTimeInSec"] * cam_params["frameRate"])
+	num_chunks = math.ceil(cam_params["recTimeInSec"] / cam_params["chunkLengthInSec"])
 	chunk_size = cam_params["chunkLengthInFrames"]
 
 	# Set frame range of current chunk
-	curr_chunk_range = np.asarray([0, chunk_size-1], dtype=np.long)
+	curr_chunk_range = np.asarray([0, chunk_size-1], dtype=np.int64)
 
 	# Initialize video folder and filename data
 	folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
@@ -328,9 +331,8 @@ def WriteFrames(
 				time.sleep(0.001)
 
 
-def SaveTimestamps(
-	stampQueue
-):
+def SaveTimestamps(stampQueue):
+	
 	saving = True
 
 	while(saving):
@@ -390,14 +392,6 @@ def CloseWriter(
 		cam_params["cameraName"],
 		writeCount,
 		dropCount))
-
-	# Convert appended lists to numpy arrays and save to mat file
-	# full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
-	# mat_filename = os.path.join(full_folder_name, 'writer_frametimes.mat')
-	# matdata = {};
-	# matdata['frameNumber'] = np.array(frameNumbers)
-	# matdata['timeStamp'] = np.array(timestamps)
-	# sio.savemat(mat_filename, matdata, do_compression=True)
 
 	time.sleep(1)
 
