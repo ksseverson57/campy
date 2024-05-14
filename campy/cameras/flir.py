@@ -4,6 +4,7 @@ import PySpin
 from campy.cameras import unicam
 import os, sys, time, logging
 import numpy as np
+import cv2
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -137,16 +138,22 @@ def GetFrameID(chunkData):
 	return chunkData.GetFrameID()
 
 
-def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
+def DisplayImage(cam_params, dispQueue, grabResult, converter=None): 
 	try:
-		if cam_params["pixelFormatInput"] == "bayer_rggb8" \
-		or cam_params["pixelFormatInput"] == "bayer_bggr8" \
-		or cam_params["pixelFormatInput"] == "gray":
-			# Convert to RGB
-			grabResult = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
+		# Convert color to RGB for display in opencv
+		if str(converter) == "None":
+			# Convert to Numpy array
+			img = GetImageArray(grabResult)
 
-		# Convert to Numpy array
-		img = GetImageArray(grabResult)
+			# Use OpenCV color converter For older PySpin versions (<2.7)
+			if cam_params["pixelFormatInput"] == "bayer_rggb8":
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_RG2RGB)
+			elif cam_params["pixelFormatInput"] == "bayer_bggr8":
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2RGB)
+			elif cam_params["pixelFormatInput"] == "gray":
+				img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+		else:
+			img = ConvertBayerToRGB(converter, grabResult)
 
 		# Downsample image
 		img = img[::cam_params["displayDownsample"], ::cam_params["displayDownsample"]]
@@ -719,12 +726,11 @@ def ConfigureTrigger(camera, cam_params):
 		if cameraTrigger == 'software' or cameraTrigger == 'Software' or cameraTrigger == 'SOFTWARE':
 			camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)
 			print("Trigger source set to software...")
-		elif cameraTrigger == 'none' or cameraTrigger == 'None' or cameraTrigger == 'NONE':
+		elif str(cameraTrigger)=="None":
 			camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 			print("Trigger source set to None...")
 			return cam_params
 		else:
-			# eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_%s)" % cameraTrigger)
 			eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_{})".format(cameraTrigger))
 			print("Trigger source set to {}...".format(cameraTrigger))
 
@@ -732,8 +738,6 @@ def ConfigureTrigger(camera, cam_params):
 		# Once the appropriate trigger source has been set, turn trigger mode
 		# on in order to retrieve images using the trigger.
 		camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
-
-		# cam_params["triggerSource"] = camera.TriggerMode.GetValue()
 		cam_params["configTrig"] = True
 
 	except Exception as e:
@@ -775,3 +779,18 @@ def PrintDeviceInfo(nodemap, cam_params):
 	except Exception as e:
 		logging.error("Caught error at cameras/flir.py PrintDeviceInfo: {}".format(e))
 
+
+def GetConverter():
+	# PySpin introduced "ImageProcessor" class 
+	# instead of ImagePtr.Convert
+	try:
+		converter = PySpin.ImageProcessor()
+		converter.SetColorProcessing(PySpin.SPINNAKER_COLOR_PROCESSING_ALGORITHM_HQ_LINEAR)
+	except:
+		converter = None
+	return converter
+
+
+def ConvertBayerToRGB(converter, grabResult):
+	img = converter.Convert(grabResult, PySpin.PixelFormat_RGB8)
+	return img.GetNDArray()

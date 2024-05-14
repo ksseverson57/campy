@@ -5,10 +5,12 @@
 - Added constant bitrate (cbr) mode \
   With cbr, video files can be compressed consistently with minimal loss in visual quality \
   However, constant quality (constqp) mode can compress with fewer artifacts in frames with rapid motion
-- Integrated Basler pypylon zero-copy to reduce overhead
+- Integrated Basler pypylon zero-copy to reduce CPU overhead
 - Re-worked closeout sequence to improve synchronicity when recording is interrupted by user (Ctrl+C)
 - Unified display window across camera APIs using opencv
 - Added seamless chunking to split video into multiple files (see help for "chunkLengthInFrames")
+- By default, video files are now saved with unique datetime to prevent overwriting
+- Timestamps are now saved with each video chunk
 - Replaced config parameter "chunkLengthInFrames" with "displayFrameCounter" for reporting FPS and recording progress
 - Added support for non-integer frame rates \
   Trigger module now passes inter-frame interval in microseconds rather than frame rate to microcontroller \
@@ -20,11 +22,27 @@
 
 ## Hardware/Software Recommendations
 - Basler and/or FLIR machine vision camera(s)
-- Windows, IOS, or Linux system
-- (Optional) Server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3995WX, Intel i9-10900X) can increase bandwidth over consumer CPUs with 2 memory channels (more cameras, higher resolution/frame rate)
-- (Optional) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
-- (Optional) Hardware encoder using AMD, Intel, or Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix)
-- (Optional) Arduino/Teensy/Pi microcontroller for syncing cameras and other devices
+- Windows, Mac, or Linux system
+- (Recommended) For multi-camera configurations, server/workstation class CPUs with >=4 memory channels (e.g., AMD Threadripper 3955WX, Intel i9-10900X) can increase camera throughput over consumer CPUs with 2 memory channels (e.g., Ryzen 7950X, i9-14900K)
+- (Recommended) USB expansion card with 1 host controller per camera (e.g., Basler USB 3.0, 4X PCIe, 4X HC, 4 Ports PN# 2000036233)
+- (Recommended) Hardware encoder using Nvidia GPU (see https://developer.nvidia.com/video-encode-decode-gpu-support-matrix) or AMD/Intel GPU
+- (Recommended) Arduino/Teensy/Raspberry Pi/NIDAQ microcontroller for syncing cameras and other devices
+
+## Tested Camera Configurations
+| Lab | Rig | Builder | Cam(s) | WxH | Color | FPS | Trig | Bit Rate | Raw Size | Compressed Size | Compression
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Fan Wang (MIT) | 6-Cam Cylinder | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~7.5 TB/hr | ~7.5 GB/hr | ~1000X |
+| Fan Wang (MIT) | 4-Cam Box | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
+| Mala Murthy (Princeton) | 12-Cam Home Cage | Stefan Oline | 12x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~20 TB/hr | ~15 GB/hr | ~500X |
+| Andreas Lüthi (FMI) | 5-Cam Behavior | Iris Odstrcil | 5x FLIR Blackfly S BFS-U3-162SC | 1440x1024 | RGB | 80 | NIDAQ | 6.9 Mb/s | ~8 TB/hr | ~15.5 GB/hr | ~500X |
+
+## Tested PC Configurations
+| Lab | Rig | System Integrator | OS | CPU | Memory Bandwidth | Motherboard | GPU(s) | #NVENC | USB Expansion | 
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Fan Wang (MIT) | 6-Cam Cylinder | ASL (Marquis C532-SR8) | Windows 10 | Intel i9-9900X | 4-Channel | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
+| Fan Wang (MIT) | 4-Cam Box | Supermicro (AS-5014A-TT) | Windows 10 | AMD Threadripper PRO 3955WX | 8-Channel | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
+| Mala Murthy (Princeton) | 12-Cam Home Cage | Dell (Precision 7865) | Windows 11 | AMD Threadripper PRO 5955WX | 8-Channel | Dell WRX80 | RTX 6000 Ada | 3 | 2x Basler PN#2000036233 | 
+| Andreas Lüthi (FMI) | 5-Cam Behavior | Dell (Precision 5820) | Windows 10 | Intel Xeon W-2155 | 4-Channel | Dell 0X8DXD | Quadro RTX 6000 | 1 | Fresco FL1100 | 
 
 ## Installation
 1. Update graphics drivers
