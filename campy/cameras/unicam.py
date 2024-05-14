@@ -248,7 +248,8 @@ def SaveMetadata(cam_params, grabdata):
 		meta = cam_params
 
 		# Save parameters and recording metadata to csv spreadsheet
-		csv_filename = os.path.join(full_folder_name, 'metadata.csv')
+		dt = grabdata['dateTimeStart'].strftime("%Y%m%d_%H%M%S")
+		csv_filename = os.path.join(full_folder_name, dt + '_metadata.csv')
 		meta['totalFrames'] = int(grabdata['frameNumber'])
 		meta['totalTime'] = grabdata['timeEnd']
 		meta['dateStart'] = grabdata['dateTimeStart'].strftime("%Y/%m/%d")
