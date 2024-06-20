@@ -33,7 +33,7 @@
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Fan Wang (MIT) | 6-Cam Cylinder | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~7.5 TB/hr | ~7.5 GB/hr | ~1000X |
 | Fan Wang (MIT) | 4-Cam Box | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
-| Annegret Falkner (Princeton) | 12-Cam Home Cage | Stefan Oline | 12x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~20 TB/hr | ~15 GB/hr | ~500X |
+| Annegret Falkner (Princeton) | 12-Cam Home Cage | Stefan Oline | 12x Blackfly S Mono 1.3 BFS-U3-13Y3M-C | 1280x1024 | Mono | 120 | Arduino Nano ESP32 | 10 Mb/s | ~20 TB/hr | ~15 GB/hr | ~500X |
 | Andreas Lüthi (FMI) | 5-Cam Behavior | Iris Odstrcil | 5x FLIR Blackfly S BFS-U3-162SC | 1440x1024 | RGB | 80 | NIDAQ | 6.9 Mb/s | ~8 TB/hr | ~15.5 GB/hr | ~500X |
 
 ## Tested PC Configurations
