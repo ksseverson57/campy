@@ -64,6 +64,10 @@ def OpenCamera(cam_params):
 	# Initialize camera object
 	camera.Init()
 
+	# Reset to factory default settings
+	camera.UserSetSelector.SetValue(PySpin.UserSetSelector_Default)
+	camera.UserSetLoad()
+
 	# Retrieve TL device nodemap
 	nodemap_tldevice = camera.GetTLDeviceNodeMap()
 
