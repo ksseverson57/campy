@@ -65,8 +65,19 @@ def OpenCamera(cam_params):
 	# Initialize camera object
 	camera.Init()
 
-	# Reset to factory default settings
-	camera.UserSetSelector.SetValue(PySpin.UserSetSelector_Default)
+	# Reset setting to Default or UserSet
+	if str(cam_params["cameraSettings"]) in ["None","Default"]:
+		camera.UserSetSelector.SetValue(PySpin.UserSetSelector_Default)
+		print("Loading settings from Default ...")
+
+	elif cam_params["cameraSettings"] in ["0", "UserSet0", "User Set 0"]:
+		camera.UserSetSelector.SetValue(PySpin.UserSetSelector_UserSet0)
+		print("Loading settings from User Set 0 ...")
+
+	elif cam_params["cameraSettings"] in ["1", "UserSet1", "User Set 1"]:
+		camera.UserSetSelector.SetValue(PySpin.UserSetSelector_UserSet1)
+		print("Loading settings from User Set 1 ...")
+
 	camera.UserSetLoad()
 
 	# Retrieve TL device nodemap
@@ -91,6 +102,16 @@ def LoadSettings(camera, cam_params):
 		# Configure custom image settings (acquisition, white balance, frame height/width/offsets, 
 		# pixel format, exposure, gain, gamma, buffer and chunkdata mode (e.g. timestamp/frame info))
 		cam_params = ConfigureCustomImageSettings(camera, cam_params)
+
+		# Manually hard-code settings in PySpin
+		# camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
+		# camera.ExposureMode.SetValue(PySpin.ExposureMode_Timed)
+		# camera.ExposureTime.SetValue(cam_params["cameraExposureTimeInUs"])
+		# camera.AcquisitionFrameRateEnable.SetValue(False)
+		# camera.GainAuto.SetValue(PySpin.GainAuto_Off)
+		# camera.Gain.SetValue(cam_params["cameraGain"])
+		# camera.GammaEnable.SetValue(False)
+		# camera.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
 
 	except Exception as e:
 		logging.error("Caught error at cameras/flir.py LoadSettings: {}".format(e))
@@ -151,13 +172,13 @@ def DisplayImage(cam_params, dispQueue, grabResult, converter=None):
 
 			# Use OpenCV color converter For older PySpin versions (<2.7)
 			if cam_params["pixelFormatInput"] == "bayer_rggb8":
-				img = cv2.cvtColor(img, cv2.COLOR_BAYER_RG2RGB)
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_RG2BGR)
 			elif cam_params["pixelFormatInput"] == "bayer_bggr8":
-				img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2RGB)
+				img = cv2.cvtColor(img, cv2.COLOR_BAYER_BG2BGR)
 			elif cam_params["pixelFormatInput"] == "gray":
-				img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+				img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 		else:
-			img = ConvertBayerToRGB(converter, grabResult)
+			img = ConvertBayerToBGR(converter, grabResult)
 
 		# Downsample image
 		img = img[::cam_params["displayDownsample"], ::cam_params["displayDownsample"]]
@@ -599,7 +620,7 @@ def ConfigureGain(camera, cam_params):
 			return cam_params
 
 		# Turn off Auto Gain
-		node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue())
+		node_gainauto_mode.SetIntValue(0)
 
 		# Retrieve gain node (float)
 		node_gain = PySpin.CFloatPtr(nodemap.GetNode("Gain"))
@@ -797,4 +818,9 @@ def GetConverter():
 
 def ConvertBayerToRGB(converter, grabResult):
 	img = converter.Convert(grabResult, PySpin.PixelFormat_RGB8)
+	return img.GetNDArray()
+
+
+def ConvertBayerToBGR(converter, grabResult):
+	img = converter.Convert(grabResult, PySpin.PixelFormat_BGR8)
 	return img.GetNDArray()
