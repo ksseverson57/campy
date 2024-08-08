@@ -1,0 +1,43 @@
+# This beginner-level config uses the GPU (gpuID: 0) to compress video
+# using ffmpeg's H265 codec
+
+# Recording parameters
+videoFolder: "./videos"
+videoFilename: "0.mp4"
+frameRate: 80
+recTimeInSec: 10
+
+# Camera parameters
+numCams: 1
+cameraMake: "flir"
+frameWidth: 1280
+frameHeight: 1024
+pixelFormatInput: "rgb24" # "bayer_rggb8" # 
+pixelFormatOutput: "rgb0"
+
+# Flir settings
+cameraSettings: "UserSet0"
+cameraTrigger: "Line3"
+bufferSize: 200
+cameraExposureTimeInUs: 1500
+cameraGain: 1
+disableGamma: True
+cameraDebug: False # True # 
+
+# Compression parameters
+gpuID: 0                            
+gpuMake: "nvidia" # "intel" #         # "nvidia", "amd", "intel"                  
+codec: "h265"                         # "h264", "h265", "av1", or user-defined video codec
+quality: "10M" 
+preset: "slow"                       
+ffmpegLogLevel: "warning"               # "quiet", "warning", "info"
+# ffmpegPath: "C:/Code/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
+
+# Display parameters
+displayFrameCounter: 1
+displayFrameRate: 10
+
+# Trigger Parameters
+startArduino: True
+serialPort: "COM3"                    # e.g. "COM3" Win; "/dev/ttyACM0" Linux
+digitalPins: [0,1,2]
