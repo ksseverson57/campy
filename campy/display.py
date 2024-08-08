@@ -6,7 +6,7 @@ import cv2
 
 def DisplayFrames(cam_params, dispQueue):
 	
-	window_name = "Camera" + str(cam_params['n_cam']+1)
+	window_name = cam_params['cameraName']
 	cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
 	window_open = True
