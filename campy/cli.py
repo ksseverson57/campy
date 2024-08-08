@@ -23,7 +23,7 @@ def DefaultParams():
 
 	# Camera default parameters
 	params["cameraMake"] = "basler"
-	params["cameraSettings"] = "./configs/calibration.pfs"
+	params["cameraSettings"] = None
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
 	params["cameraDebug"] = False
