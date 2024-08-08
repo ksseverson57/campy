@@ -22,7 +22,7 @@ def DefaultParams():
 
 	# Camera default parameters
 	params["cameraMake"] = "basler"
-	params["cameraSettings"] = "./campy/cameras/basler/rgb24.pfs"
+	params["cameraSettings"] = "None"
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
 	params["cameraDebug"] = False
