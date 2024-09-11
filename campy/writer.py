@@ -35,14 +35,14 @@ def OpenWriter(cam_params, queue):
 			print("Opened: {} using CPU to compress the stream.".format(full_file_name))
 			if preset == "None":
 				preset = "fast"
-			gpu_params = ["-r:v", frameRate,
-						"-preset", preset,
-						"-tune", "fastdecode",
-						"-crf", quality,
-						"-bufsize", "20M",
-						"-maxrate", "10M",
-						"-bf:v", "4",
-						"-vsync", "0",]
+			gpu_params = [
+				"-preset", preset,
+				"-tune", "fastdecode",
+				"-crf", quality,
+				"-bufsize", "20M",
+				"-maxrate", "10M",
+				"-bf:v", "4",
+				]
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
@@ -59,14 +59,12 @@ def OpenWriter(cam_params, queue):
 			if cam_params["gpuMake"] == "nvidia":
 				if preset == "None":
 					preset = "fast"
-				gpu_params = ["-r:v", frameRate, # important to play nice with vsync "0"
-							"-preset", preset, # set to "fast", "llhp", or "llhq" for h264 or hevc
-							"-qp", quality,
-							"-bf:v", "0",
-							"-vsync", "0",
-							"-2pass", "0",
-							"-gpu", gpuID,
-							]
+				gpu_params = [
+					"-preset", preset, # set to "fast", "llhp", or "llhq" for h264 or hevc
+					"-qp", quality,
+					"-bf:v", "0",
+					"-gpu", gpuID,
+					]
 				if cam_params["codec"] == "h264":
 					codec = "h264_nvenc"
 				elif cam_params["codec"] == "h265":
@@ -75,15 +73,14 @@ def OpenWriter(cam_params, queue):
 			# AMD GPU (AMF/VCE) encoder optimized parameters
 			elif cam_params["gpuMake"] == "amd":
 				# Preset not supported by AMF
-				gpu_params = ["-r:v", frameRate,
-							"-usage", "lowlatency",
-							"-rc", "cqp", # constant quantization parameter
-							"-qp_i", quality,
-							"-qp_p", quality,
-							"-qp_b", quality,
-							"-bf:v", "0",
-							"-hwaccel", "auto",
-							"-hwaccel_device", gpuID,]
+				gpu_params = [
+					"-usage", "lowlatency",
+					"-rc", "cqp", # constant quantization parameter
+					"-qp_i", quality,
+					"-qp_p", quality,
+					"-qp_b", quality,
+					"-bf:v", "0",
+					"-hwaccel_device", gpuID,]
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "yuv420p"
 				if cam_params["codec"] == "h264":
@@ -95,10 +92,10 @@ def OpenWriter(cam_params, queue):
 			elif cam_params["gpuMake"] == "intel":
 				if preset == "None":
 					preset = "faster"
-				gpu_params = ["-r:v", frameRate,
-							"-bf:v", "0",
-							"-preset", preset,
-							"-q", str(int(quality)+1),]
+				gpu_params = [
+						"-bf:v", "0",
+						"-preset", preset,
+						"-q", str(int(quality)+1),]
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "nv12"
 				if cam_params["codec"] == "h264":
