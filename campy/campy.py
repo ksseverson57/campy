@@ -81,7 +81,7 @@ def AcquireOneCamera(n_cam):
 	threading.Thread(
 		target = writer.SaveTimestamps,
 		daemon = True,
-		args = (stampQueue,),
+		args = (cam_params, stampQueue,),
 		).start()
 
 	# Start video writer (main "consumer" process)
