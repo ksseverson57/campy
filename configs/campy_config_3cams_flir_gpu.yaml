@@ -1,0 +1,46 @@
+# This beginner-level config uses the CPU (gpuID: -1) to compress video
+# using ffmpeg's X264 codec
+
+# Recording parameters
+videoFolder: "./test"
+videoFilename: "0.mp4"
+frameRate: 350
+recTimeInSec: 30
+
+# Camera parameters
+numCams: 3
+cameraSelection: [0, 1, 2]
+cameraNames: ["Camera1", "Camera2", "Camera3"]
+cameraMake: "flir"
+frameWidth: 720
+frameHeight: 528
+
+# Flir settings
+cameraTrigger: "Line0"
+bufferSize: 20000
+cameraExposureTimeInUs: 1400
+cameraGain: 20
+disableGamma: True
+
+# Compression parameters
+gpuID: 0                              
+gpuMake: "nvidia"                     # "nvidia", "amd", "intel"                  
+codec: "h264"                         # "h264", "h265", or user-defined video codec
+quality: 10                           # 0-55. Lower number is less compression and larger files.
+# qualityMode: "vbr"                    # "vbr" (variable bit rate), "cbr" (constant bit rate), or constqp
+ffmpegLogLevel: "info"                # "quiet", "warning", "info"
+preset: "fast"                        # How much effort should be put into reducing file size?
+ffmpegPath: "C:/Users/lwood39/Documents/campy/ffmpeg-2024-03-11-git-3d1860ec8d-full_build/bin/ffmpeg"       # Location of ffmpeg binary if not using Anaconda
+pixelFormatInput: "gray"
+pixelFormatOutput: "rgb0"
+
+# Display parameters
+# displayFrameCounter: 1
+# displayFrameRate: 5
+
+# Trigger Parameters
+startArduino: True
+serialPort: "COM4"                    # e.g. "COM3" Win; "/dev/ttyACM0" Linux
+digitalPins: [4,5,6,7]
+
+cameraDebug: False
