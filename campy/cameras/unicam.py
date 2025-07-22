@@ -117,7 +117,7 @@ def StartGrabbing(camera, cam_params, cam):
 def CountFPS(grabdata, frameNumber, timeStamp):
 	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
 		timeElapsed = timeStamp - grabdata["timeStamp"][0]
-		fpsCount = round(frameNumber / timeElapsed, 1)
+		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
 		print('{} collected {} frames at {} fps for {} sec.'\
 			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
 
