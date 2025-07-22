@@ -78,8 +78,7 @@ unsigned long SetFrameRate() {
   frame_rate_in = Serial.parseFloat();
 
   // Output frame rate, avoid negative values
-  if (frame_rate_in == 0) {}
-  else if (frame_rate_in < 0) {
+  if (frame_rate_in < 0) {
     frame_rate_out = 0;
   }
   else {
