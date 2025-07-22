@@ -174,7 +174,7 @@ def OpenWriter(
 
 				if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 					pix_fmt_out = "nv12"
-				if cam_params["codec"] == ["h264","H264","x264","X264"]:
+				if cam_params["codec"] in ["h264","H264","x264","X264"]:
 					codec = "h264_qsv"
 				elif cam_params["codec"] in ["h265","H265","hevc","HEVC"]:
 					codec = "hevc_qsv"
