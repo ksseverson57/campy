@@ -34,15 +34,17 @@
 | Fan Wang (MIT) | 6-Cam Cylinder | Kyle Severson | 6x Basler acA1920-150uc | 1152x1024 | RGB | 100 | Teensy 3.2 | 4 Mb/s | ~7.5 TB/hr | ~7.5 GB/hr | ~1000X |
 | Fan Wang (MIT) | 4-Cam Box | Kian Caplan | 4x Basler daA1920-160uc-CS | 1536x1152 | RGB | 150 | Teensy 3.2 | 10 Mb/s | ~7.5 TB/hr | ~15 GB/hr | ~500X |
 | Annegret Falkner (Princeton) | 12-Cam Home Cage | Stefan Oline | 12x Blackfly S Mono 1.3 BFS-U3-13Y3M-C | 1280x1024 | Mono | 120 | Arduino Nano ESP32 | 10 Mb/s | ~20 TB/hr | ~15 GB/hr | ~500X |
+| Annegret Falkner (Princeton) | 5-Cam Basic | Stefan Oline | 5x Blackfly S Mono 1.3 BFS-U3-13Y3M-C | 1280x1024 | Mono | 160 | Arduino Nano ESP32 | 20 Mb/s | ~11 TB/hr | ~45 GB/hr | ~240X |
 | Andreas Lüthi (FMI) | 5-Cam Behavior | Iris Odstrcil | 5x FLIR Blackfly S BFS-U3-162SC | 1440x1024 | RGB | 80 | NIDAQ | 6.9 Mb/s | ~8 TB/hr | ~15.5 GB/hr | ~500X |
 
 ## Tested PC Configurations
 | Lab | Rig | System Integrator | OS | CPU | Memory Bandwidth | Motherboard | GPU(s) | #NVENC | USB Expansion | 
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Fan Wang (MIT) | 6-Cam Cylinder | ASL (Marquis C532-SR8) | Windows 10 | Intel i9-9900X | 4-Channel | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
-| Fan Wang (MIT) | 4-Cam Box | Supermicro (AS-5014A-TT) | Windows 10 | AMD Threadripper PRO 3955WX | 8-Channel | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
-| Annegret Falkner (Princeton) | 12-Cam Home Cage | Dell (Precision 7865) | Windows 11 | AMD Threadripper PRO 5955WX | 8-Channel | Dell WRX80 | RTX 6000 Ada | 3 | 2x Basler PN#2000036233 | 
-| Andreas Lüthi (FMI) | 5-Cam Behavior | Dell (Precision 5820) | Windows 10 | Intel Xeon W-2155 | 4-Channel | Dell 0X8DXD | Quadro RTX 6000 | 1 | Fresco FL1100 | 
+| Fan Wang (MIT) | 6-Cam Cylinder | ASL (Marquis C532-SR8) | Windows 10 | Intel i9-9900X | 4-Channel DDR4 | ASrock X299 Steel Legend | RTX 4090 | 2 | 1x Basler PN#2000036233 | 
+| Fan Wang (MIT) | 4-Cam Box | Supermicro (AS-5014A-TT) | Windows 10 | AMD Threadripper PRO 3955WX | 8-Channel DDR4 | Supermicro WRX80 MBD-M12SWA-TF-O | 2x RTX A4000 | 2 | 1x Basler PN#2000036233 | 
+| Annegret Falkner (Princeton) | 12-Cam Home Cage | Dell (Precision 7865) | Windows 11 | AMD Threadripper PRO 5955WX | 8-Channel DDR4 | Dell WRX80 | RTX 6000 Ada | 3 | 2x Basler PN#2000036233 | 
+| Annegret Falkner (Princeton) | 5-Cam Basic | Dell Pro Tower Plus | Windows 11 | Intel Core Ultra 9 285 | 2-Channel DDR5 | Intel Z890 | Intel Xe iGPU | 0 | N/A | 
+| Andreas Lüthi (FMI) | 5-Cam Behavior | Dell (Precision 5820) | Windows 10 | Intel Xeon W-2155 | 4-Channel DDR4 | Dell 0X8DXD | Quadro RTX 6000 | 1 | Fresco FL1100 | 
 
 ## Installation
 1. Update graphics drivers
