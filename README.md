@@ -158,7 +158,7 @@ campy-acquire ./configs/campy_config.yaml
 - Check that your cameras and features can be loaded in the camera vendor's GUI (e.g. Pylon Viewer for Basler or SpinView for FLIR).
 - If errors arise when campy loads camera settings, try replugging camera USB cables
 
-- If your compression streams are limited to 5 random cameras, it could be due to hard limit of 5 simultaneous encoding streams per system when using NVIDIA Geforce cards
+- If your compression streams are limited to 8 cameras, it could be due to hard limit on simultaneous encoding streams per system when using consumer-grade NVIDIA Geforce cards. Upgrade to latest NVIDIA drivers if limited to fewer than 8 cameras.
 - Tesla/Quadro cards are typically unrestricted
 - NVIDIA driver patch can circumvent this restriction
 
