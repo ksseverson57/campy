@@ -4,6 +4,7 @@
 import os, ast, yaml, time, logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from campy.cameras import unicam
+from campy.trigger import trigger
 
 
 def DefaultParams():
@@ -26,6 +27,7 @@ def DefaultParams():
 	params["cameraSettings"] = "./configs/calibration.pfs"
 	params["frameWidth"] = 1152
 	params["frameHeight"] = 1024
+	params["frameStride"] = 1
 	params["cameraDebug"] = False
 	params["zeroCopy"] = False
 	params["bufferMode"] = "OldestFirst"
@@ -47,6 +49,7 @@ def DefaultParams():
 	params["quality"] = "10M"
 	params["qualityMode"] = None
 	params["preset"] = None
+	params["tune"] = None
 
 	# Display parameters
 	params["displayFrameCounter"] = 1
@@ -141,10 +144,10 @@ def OptParams(cam_params):
 	# String is passed to all cameras. Else, each list item is passed to its respective camera
 	for key in cam_params:
 		if type(cam_params[key]) is list:
-			if len(cam_params[key]) == cam_params["numCams"]:
-				cam_params[key] = cam_params[key][cam_params["n_cam"]]
-			elif key == "digitalPins":
+			if key == "digitalPins":
 				continue
+			elif len(cam_params[key]) == cam_params["numCams"]:
+				cam_params[key] = cam_params[key][cam_params["n_cam"]]
 			else:
 				logging.warning("{} size mismatch with numCams. Using list idx {}."\
 						.format(key,cam_params["n_cam"]))
@@ -215,6 +218,12 @@ def ParseClargs(parser):
 		dest="frameRate",
 		type=float, 
 		help="Frame rate equal to trigger frequency.",
+	)
+	parser.add_argument(
+		"--frameStride", 
+		dest="frameStride",
+		type=ast.literal_eval, 
+		help="Keep every Nth triggered frame (records frames where index mod N == 0).",
 	)
 	parser.add_argument(
 		"--recTimeInSec",
@@ -391,7 +400,14 @@ def ParseClargs(parser):
 		"--preset",
 		dest="preset",
 		type=ast.literal_eval,
-		help="Compression preset (e.g. 'slow', 'fast', 'veryfast'). \
+		help="Compression preset (e.g. 'p7', slowest, best quality ... 'p1' fastest, lowest quality). \
+				Incorrect settings may break the pipe. Test with ffmpegLogLevel 'warning' or 'info'.",
+	)
+	parser.add_argument(
+		"--tune",
+		dest="tune",
+		type=ast.literal_eval,
+		help="Compression tuning (e.g. 'slow', 'fast', 'veryfast'). \
 				Incorrect settings may break the pipe. Test with ffmpegLogLevel 'warning' or 'info'.",
 	)
 
