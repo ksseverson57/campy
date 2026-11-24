@@ -114,3 +114,54 @@ def test_mac_compatible_h265_containers(filename, tagged):
 
 def test_mac_compatible_h265_leaves_h264_alone():
 	assert writer.EncoderArgs(Params(macCompatibleH265=True)) == writer.EncoderArgs(Params())
+
+
+# AV1 on each GPU: the encoder, and quality as AV1's quantizer index (0-255)
+AV1_ENCODERS = [
+	("nvidia", "av1_nvenc", "rgb0", ["-preset", "fast", "-qp", "88", "-bf:v", "0", "-gpu", "0"]),
+	("intel", "av1_qsv", "nv12", ["-bf:v", "0", "-preset", "faster", "-q", "88"]),
+	("amd", "av1_amf", "yuv420p", ["-usage", "lowlatency", "-rc", "cqp",
+		"-qp_i", "88", "-qp_p", "88", "-qp_b", "88", "-bf:v", "0"]),
+	]
+
+
+@pytest.mark.parametrize("gpu_make, encoder, pix_fmt_out, expected", AV1_ENCODERS)
+def test_av1_on_gpu(gpu_make, encoder, pix_fmt_out, expected):
+	codec, pix_fmt, args = writer.EncoderArgs(Params(gpuID=0, gpuMake=gpu_make, codec="av1", quality=88))
+	assert codec == encoder
+	assert pix_fmt == pix_fmt_out
+	assert args == expected
+
+
+@pytest.mark.parametrize("gpu_make", ["nvidia", "intel", "amd"])
+def test_av1_only_changes_the_encoder_name_and_quality(gpu_make):
+	# AV1 takes the same options as H.265 on each GPU; only Quick Sync's
+	# quality differs (H.265's is quality + 1)
+	h265 = writer.EncoderArgs(Params(gpuID=0, gpuMake=gpu_make, codec="h265", quality=30))
+	av1 = writer.EncoderArgs(Params(gpuID=0, gpuMake=gpu_make, codec="av1", quality=30))
+	assert av1[1:] == (h265[1], [("30" if a == "31" else a) for a in h265[2]])
+
+
+def test_av1_on_cpu_is_refused():
+	# ffmpeg's own choice for "av1" (libaom-av1) would refuse campy's CPU options
+	with pytest.raises(ValueError, match="GPU only"):
+		writer.EncoderArgs(Params(codec="av1"))
+
+
+def test_unmapped_codec_on_gpu_warns(caplog):
+	# "hevc" is passed to ffmpeg as it is, which then picks libx265, on the CPU
+	codec, pix_fmt, args = writer.EncoderArgs(Params(gpuID=0, gpuMake="intel", codec="hevc"))
+	assert codec == "hevc"
+	assert "may run on the CPU" in caplog.text
+
+
+@pytest.mark.parametrize("gpu_make", ["nvidia", "intel", "amd"])
+@pytest.mark.parametrize("codec_name", ["h264", "h265", "av1"])
+def test_mapped_codecs_do_not_warn(caplog, gpu_make, codec_name):
+	writer.EncoderArgs(Params(gpuID=0, gpuMake=gpu_make, codec=codec_name))
+	assert caplog.text == ""
+
+
+def test_av1_leaves_mac_compatible_h265_alone():
+	codec, pix_fmt, args = writer.EncoderArgs(Params(gpuID=0, codec="av1", macCompatibleH265=True))
+	assert "-tag:v" not in args

@@ -83,6 +83,13 @@ It passes if it writes nvenc_test.mp4 and prints no errors. These are campy's se
 
 For `preset`, `"fast"` (campy's default) works in every ffmpeg, and `p1` (fastest) to `p7` (best quality) from 4.4 on, where `"fast"` means `p1`, NVENC's fastest preset (4.2.2 used the older "high performance" preset). ffmpeg 9 removed the older names, such as `llhp` and `llhq`.
 
+### AV1 on a GPU
+`codec: "av1"` encodes AV1 on the GPU's encoder: `av1_nvenc` with `gpuMake: "nvidia"` (Ada generation, such as the RTX 40-series and RTX Ada cards, and newer), `av1_qsv` with `"intel"` (Arc GPUs, and the integrated GPUs of Core Ultra processors) and `av1_amf` with `"amd"` (RDNA 3, such as the Radeon RX 7000-series, and newer). Other GPUs have no AV1 encoder, and ffmpeg stops with an error. AV1 is for GPU encoding only: with `gpuID: -1` campy stops and says so.
+- `quality` is then AV1's quantizer index, 0-255, not the 0-51 of H.264 and H.265, and is passed to every encoder as it is (Quick Sync H.264 and H.265 get `quality` + 1). 88 is a place to start: on an Intel Core Ultra's Quick Sync (1280x1024 mono, 60 fps) it gave files about half the size of H.265 at quality 24. Check the picture and file size on your own scene.
+- `av1_qsv` needs an ffmpeg built with Intel's oneVPL (`libvpl`). conda-forge's ffmpeg 8.1.2 for Linux is; its Windows build has no `_qsv` encoders at all, so set `ffmpegPath` to one that does, such as BtbN's builds above (which have NVENC too). To compile ffmpeg for it, configure with `--enable-libvpl` (apt package `libvpl-dev`), not `--enable-libmfx`.
+- `ffmpeg -hide_banner -encoders` lists the encoders an ffmpeg has: look for `av1_nvenc`, `av1_qsv` or `av1_amf`.
+- Check that your analysis tools read AV1 before recording in it: OpenCV's wheels for Linux, for one, decode no AV1. ffmpeg-based readers such as PyAV and imageio-ffmpeg do.
+
 ## Usage
 
 ### Configuration

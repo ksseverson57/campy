@@ -9,6 +9,9 @@ def EncoderArgs(cam_params):
 	# format it is given, and its options (passed after the input)
 	pix_fmt_out = cam_params["pixelFormatOutput"]
 	codec = str(cam_params["codec"])
+	# quality: a CRF for libx264/libx265 and a constant quantizer for the GPU
+	# encoders, 0-51 for H.264 and H.265. For AV1 it is AV1's quantizer
+	# index, 0-255, passed to every GPU encoder as it is.
 	quality = str(cam_params["quality"])
 	preset = str(cam_params["preset"])
 	gpuID = str(cam_params["gpuID"])
@@ -18,6 +21,11 @@ def EncoderArgs(cam_params):
 
 	# CPU compression
 	if cam_params["gpuID"] == -1:
+		if cam_params["codec"] == "av1":
+			# ffmpeg's own pick for "av1" (libaom-av1) refuses these options
+			# ("Unable to parse "tune" option value "fastdecode"")
+			raise ValueError('codec "av1" is encoded on a GPU only: set gpuID (0, 1, ...) '
+				'and gpuMake ("nvidia", "intel" or "amd").')
 		if preset == "None":
 			preset = "fast"
 		gpu_params = [
@@ -53,6 +61,8 @@ def EncoderArgs(cam_params):
 				codec = "h264_nvenc"
 			elif cam_params["codec"] == "h265":
 				codec = "hevc_nvenc"
+			elif cam_params["codec"] == "av1":
+				codec = "av1_nvenc" # Ada (RTX 40-series, RTX Ada) and newer
 
 		# AMD GPU (AMF/VCE) encoder optimized parameters
 		elif cam_params["gpuMake"] == "amd":
@@ -73,6 +83,8 @@ def EncoderArgs(cam_params):
 				codec = "h264_amf"
 			elif cam_params["codec"] == "h265":
 				codec = "hevc_amf"
+			elif cam_params["codec"] == "av1":
+				codec = "av1_amf" # RDNA 3 (Radeon RX 7000) and newer
 
 		# Intel iGPU encoder (Quick Sync) optimized parameters
 		elif cam_params["gpuMake"] == "intel":
@@ -81,7 +93,9 @@ def EncoderArgs(cam_params):
 			gpu_params = [
 					"-bf:v", "0",
 					"-preset", preset,
-					"-q", str(int(quality)+1),]
+					# H.264 and H.265 get quality + 1, as campy always passed it;
+					# AV1's quantizer index goes as it is
+					"-q", quality if cam_params["codec"] == "av1" else str(int(quality)+1),]
 			# Quick Sync encodes 8-bit video from NV12 only: 4:2:0 like yuv420p,
 			# with the two chroma planes interleaved. Given yuv420p, ffmpeg
 			# switches to NV12 by itself and warns "Incompatible pixel format".
@@ -91,6 +105,15 @@ def EncoderArgs(cam_params):
 				codec = "h264_qsv"
 			elif cam_params["codec"] == "h265":
 				codec = "hevc_qsv"
+			elif cam_params["codec"] == "av1":
+				codec = "av1_qsv" # Arc GPUs, and Core Ultra processors' integrated GPUs
+
+		# Any other codec name (e.g. "hevc") reaches ffmpeg as it is, and ffmpeg
+		# then picks its own encoder for it, which may well run on the CPU:
+		# "av1" did, before campy mapped it to the GPU encoders
+		if codec == str(cam_params["codec"]):
+			logging.warning('codec "{}" is not one campy maps to a {} GPU encoder ("h264", "h265" or "av1"): '
+				'ffmpeg picks its own encoder for it, which may run on the CPU.'.format(codec, cam_params["gpuMake"]))
 
 	# macCompatibleH265: H.265 that Apple's decoder opens (MATLAB's VideoReader
 	# on a Mac, QuickTime, Safari). It opens H.265 in an .mp4 or .mov only when
