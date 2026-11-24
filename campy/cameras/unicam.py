@@ -7,6 +7,7 @@ import os, sys, time, csv, logging
 import numpy as np
 from collections import deque
 from scipy import io as sio
+from campy.utils import folders
 
 
 def ImportCam(make):
@@ -187,7 +188,7 @@ def PylonWindow(cam_params):
 
 
 def SaveMetadata(cam_params, grabdata):
-	full_folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
+	full_folder_name = folders.CameraFolder(cam_params)
 
 	try:
 		# Zero timeStamps

@@ -110,6 +110,26 @@ displayDownsample: 2 # each shown frame is 1/2 the width and height
 campy-acquire ./configs/campy_config.yaml
 ```
 
+### A new session folder for each run (optional)
+By default each camera records into `<videoFolder>/<cameraName>/`, and a second run with the same config replaces the first one's files. To keep every run, set:
+```
+sessionFolder: True # or, for one run: campy-acquire config.yaml --sessionFolder True
+```
+Each run then records into a new folder inside `videoFolder`, named by the date and time it started, which campy prints as it starts (`Recording into ...`). Two runs started in the same second get `..._14-05-11` and `..._14-05-11_2`, so no run records into another's folder:
+```
+test/
+  2026-11-24_14-05-11/
+    Camera0/
+      0.mp4
+      frametimes.npy, frametimes.mat, metadata.csv
+    Camera1/ ...
+```
+This is the session folder layout that multi-camera tools such as [LUC3D](https://github.com/talmolab/luc3d) (Load Session Folder) and [sleap-anipose](https://github.com/talmolab/sleap-anipose) read: one folder per camera, named as the camera is named in the calibration. Put the calibration file (`calibration.toml`) in the run's folder, beside the camera folders. To load several runs at once in LUC3D, pick `videoFolder` itself.
+
+A calibration recording, one whose `videoFilename` has "calibration" in it (`--videoFilename calibration.mp4`), puts each camera's video into `<cameraName>/calibration_images/`, where those tools look for a camera's calibration video and never mistake it for a session video. The camera's other files stay in `<cameraName>/`. Give calibration recordings a `videoFolder` of their own (`--videoFolder ./calibrations`), so that loading several runs at once doesn't take a calibration run for a session with no videos. Without `sessionFolder`, a calibration video is saved like any other.
+
+Each camera's "metadata.csv" records the run's folder as `recordingFolder`. With `sessionFolder`, two cameras with the same name (`cameraNames`, compared ignoring case) would write into one folder, so campy stops before recording and says which.
+
 ### Stop Recording:
 - Campy can be configured to stop automatically after set recording time (e.g., 1 hour):
 ```
