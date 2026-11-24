@@ -130,6 +130,26 @@ A calibration recording, one whose `videoFilename` has "calibration" in it (`--v
 
 Each camera's "metadata.csv" records the run's folder as `recordingFolder`. With `sessionFolder`, two cameras with the same name (`cameraNames`, compared ignoring case) would write into one folder, so campy stops before recording and says which.
 
+### Calibrating the cameras (optional)
+campy's one window can show a ChArUco calibration board live in every camera, to help record a calibration video that covers each camera's view.
+
+**What to install** (only for this; recording without it needs none of them):
+- `pip install opencv-python` (4.7 or newer), for the calibration view.
+
+**1. The board.** Print or buy a ChArUco board and tell campy which it is:
+```
+calibrationBoard: "CCT300200C" # a calib.io board, by SKU or id (calibio-300x200-coarse)
+```
+- calib.io's 13 stock ChArUco boards are known by their SKU (e.g. `CCT300200C`) or id (`calibio-300x200-coarse`); campy fills in their squares, sizes and dictionary.
+- `calibrationBoard: "auto"` identifies a calib.io board from its markers while you record. calib.io sells most grids in two or three sizes, which a video can't tell apart: give the square size too (`calibrationSquareMm: 20`).
+- Any other board: `calibrationBoard: {board_x: 8, board_y: 11, square_length: 24, marker_length: 18.75, marker_bits: 4, dict_size: 1000}` (squares across and down, the square and marker sides in mm, and the ArUco dictionary: here `DICT_4X4_1000`), as sleap-anipose's `board.toml`.
+
+**2. The calibration view.** In the one window (`displayMode: "one-window"`), press `c`, or start with it on:
+```
+calibrationMode: True # also sets displayMode: "one-window"
+```
+Each camera's tile then shows the board's corners as campy finds them (yellow dots; cyan marker outlines while an `"auto"` board is still being identified), the parts of the frame where corners have been seen so far (green), how many views the camera saw the board well in, and, for each other camera, in how many frames both saw it: what the cameras' positions are calibrated from. Move the board slowly through every camera's view, near and far, tilted, until each camera's frame is covered and no camera pair reads 0. The view runs in the window's process on the frames it is shown, a few per second and at most half a core, so it never slows the recording; pairs count frames by number, so they are meaningful for cameras on a shared trigger; set `displayDownsample: 1` if the board looks too small to be found.
+
 ### Stop Recording:
 - Campy can be configured to stop automatically after set recording time (e.g., 1 hour):
 ```

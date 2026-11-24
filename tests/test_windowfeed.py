@@ -79,7 +79,8 @@ def test_the_camera_stopping_is_sent_even_when_the_queue_was_full(ctx):
 def test_window_info_takes_the_first_of_per_camera_lists():
 	params = {"numCams": 3, "cameraNames": ["a", "b"], "frameWidth": [1280, 640, 640], "frameHeight": 1024,
 		"displayDownsample": [2, 1, 1]}
-	assert windowfeed.WindowInfo(params) == {"names": ["a", "b", "Camera2"], "frameSize": (640, 512)}
+	info = windowfeed.WindowInfo(params)
+	assert (info["names"], info["frameSize"]) == (["a", "b", "Camera2"], (640, 512))
 
 
 def test_display_mode_defaults_to_a_window_per_camera():

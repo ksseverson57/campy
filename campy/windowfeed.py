@@ -15,6 +15,8 @@ import queue
 
 import numpy as np
 
+from campy.utils import boards
+
 PROCESS_NAME = "campy-window" # the window's process: campy.campy does not open the cameras in it
 QUEUE_FRAMES = 2 # per camera, waiting for the window
 
@@ -84,10 +86,12 @@ class WindowProcess:
 	def __init__(self, ctx, params):
 		self.queues = [ctx.Queue(QUEUE_FRAMES) for n in range(params["numCams"])]
 		self.stop = ctx.Event()
+		self.results = ctx.Queue(1) # what the calibration view found, as the window closes
+		self.result = None
 		self.process = ctx.Process(
 			target=_Run,
 			name=PROCESS_NAME,
-			args=(self.queues, self.stop, WindowInfo(params)),
+			args=(self.queues, self.stop, WindowInfo(params), self.results),
 			daemon=True,
 			)
 		self.process.start()
@@ -96,6 +100,10 @@ class WindowProcess:
 	def Stop(self, timeout=5.0):
 		# The recording ended: the window closes
 		self.stop.set()
+		try:
+			self.result = self.results.get(timeout=timeout)
+		except (queue.Empty, EOFError, OSError):
+			pass
 		self.process.join(timeout)
 		if self.process.is_alive():
 			self.process.terminate()
@@ -114,10 +122,16 @@ def WindowInfo(params):
 	return {
 		"names": [str(names[n]) if n < len(names) else "Camera{}".format(n) for n in range(params["numCams"])],
 		"frameSize": (int(First(params["frameWidth"])) // downsample, int(First(params["frameHeight"])) // downsample),
+		# The calibration view (campy/calibview.py): its board (utils/boards.py), and whether it starts on
+		"calibration": {
+			"board": boards.Board(params.get("calibrationBoard"), params.get("calibrationSquareMm")),
+			"squareMm": params.get("calibrationSquareMm"),
+			"on": params.get("calibrationMode") is True,
+			},
 		}
 
 
-def _Run(cameraQueues, stop, info):
+def _Run(cameraQueues, stop, info, results=None):
 	# The window's process: Qt is loaded here only
 	from campy import window
-	window.Run(cameraQueues, stop, info)
+	window.Run(cameraQueues, stop, info, results)

@@ -20,9 +20,11 @@ Mouse and keys:
 	1-9           camera 1-9 alone
 	left, right   the previous or next camera, when one is alone
 	g, Esc        every camera
+	c             the calibration view: the board's corners, and where they have been seen (campy/calibview.py)
 
-For later modes (e.g. calibration), Window.overlays holds functions that draw
-over each camera's frame, and Window.keys maps keys to functions.
+For modes like it, Window.overlays holds functions that draw over each camera's
+frame, Window.keys maps keys to functions, and Window.watchers holds
+functions that see every frame the window takes.
 """
 
 import os, signal, sys, time, queue
@@ -213,7 +215,8 @@ class Window(QtWidgets.QWidget):
 	Every camera's tile in a grid, or one camera alone. overlays: functions
 	f(painter, camera, message) drawing over each camera's frame, the painter
 	in the frame's (displayed) pixels and clipped to it. keys: Qt key ->
-	function of no arguments.
+	function of no arguments. watchers: functions f(camera, message) called
+	with every frame message the window takes.
 	"""
 
 	def __init__(self, cameraQueues, info, stop=None):
@@ -227,6 +230,7 @@ class Window(QtWidgets.QWidget):
 		self.drag = None
 		self.lastBadges = 0.0
 		self.overlays = []
+		self.watchers = []
 		self.keys = {Qt.Key_G: self.ShowAll, Qt.Key_Escape: self.ShowAll, Qt.Key_0: self.ResetZoom,
 			Qt.Key_Left: lambda: self.Step(-1), Qt.Key_Right: lambda: self.Step(1)}
 		for k in range(min(9, len(self.tiles))):
@@ -270,6 +274,8 @@ class Window(QtWidgets.QWidget):
 				camera = message.get("camera", 0)
 				if 0 <= camera < len(self.tiles):
 					self.tiles[camera].Take(message, now)
+					for watch in self.watchers:
+						watch(camera, message)
 					changed = True
 		if changed or now - self.lastBadges > BADGE_EVERY_S:
 			self.lastBadges = now
@@ -446,16 +452,30 @@ def LowerPriority():
 		pass
 
 
-def Run(cameraQueues, stop, info):
-	"""The window's process (windowfeed.WindowProcess): shows the cameras until stop is set or the window is closed."""
+def Run(cameraQueues, stop, info, results=None):
+	"""
+	The window's process (windowfeed.WindowProcess): shows the cameras until
+	stop is set or the window is closed. Then puts what the calibration view
+	found (calibview.CalibrationView.Result) in results.
+	"""
 	signal.signal(signal.SIGINT, signal.SIG_IGN) # Ctrl-C stops the cameras; the window closes after them
 	LowerPriority()
+	result = None
 	try:
 		app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([sys.argv[0]])
 		window = Window(cameraQueues, info, stop)
+		from campy import calibview
+		calibration = calibview.Attach(window, info.get("calibration"))
 		window.show()
 		app.exec_()
+		calibration.Close()
 		print(window.Summary(), flush=True)
+		if calibration.sets or calibration.problem:
+			print(calibration.Summary(), flush=True)
+			result = calibration.Result()
 	except Exception as e:
 		print("The camera window could not run: {}. The recording goes on without it.".format(e), flush=True)
 		raise
+	finally:
+		if results is not None:
+			results.put(result)
