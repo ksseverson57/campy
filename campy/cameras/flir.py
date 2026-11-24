@@ -136,19 +136,36 @@ def GetFrameID(chunkData):
 	return chunkData.GetFrameID()
 
 
+_imageProcessor = None
+
+def ConvertToRGB(image):
+	# Spinnaker 3 and newer (e.g. PySpin 4.4, the one for Python 3.12) convert
+	# with an ImageProcessor; older PySpin has only the image's own Convert.
+	global _imageProcessor
+	if hasattr(PySpin, "ImageProcessor"):
+		if _imageProcessor is None:
+			_imageProcessor = PySpin.ImageProcessor()
+			_imageProcessor.SetColorProcessing(PySpin.SPINNAKER_COLOR_PROCESSING_ALGORITHM_HQ_LINEAR)
+		return _imageProcessor.Convert(image, PySpin.PixelFormat_RGB8)
+	return image.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
+
+
 def DisplayImage(cam_params, dispQueue, grabResult):
 	try:
 		if cam_params["pixelFormatInput"] == "bayer_rggb8" \
-		or cam_params["pixelFormatInput"] == "bayer_bggr8" \
-		or cam_params["pixelFormatInput"] == "gray":
-			# Convert to RGB
-			grabResult = grabResult.Convert(PySpin.PixelFormat_RGB8, PySpin.HQ_LINEAR)
+		or cam_params["pixelFormatInput"] == "bayer_bggr8":
+			# Demosaic to RGB
+			grabResult = ConvertToRGB(grabResult)
 
 		# Convert to Numpy array
 		img = GetImageArray(grabResult)
 
 		# Downsample image
 		img = img[::cam_params["displayDownsample"], ::cam_params["displayDownsample"]]
+
+		# The display shows RGB: repeat a mono image's one channel
+		if img.ndim == 2:
+			img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
 
 		# Send to display queue
 		dispQueue.append(img)
