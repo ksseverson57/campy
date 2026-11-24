@@ -82,7 +82,10 @@ def EncoderArgs(cam_params):
 					"-bf:v", "0",
 					"-preset", preset,
 					"-q", str(int(quality)+1),]
-			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
+			# Quick Sync encodes 8-bit video from NV12 only: 4:2:0 like yuv420p,
+			# with the two chroma planes interleaved. Given yuv420p, ffmpeg
+			# switches to NV12 by itself and warns "Incompatible pixel format".
+			if pix_fmt_out in ("rgb0", "bgr0", "yuv420p"):
 				pix_fmt_out = "nv12"
 			if cam_params["codec"] == "h264":
 				codec = "h264_qsv"

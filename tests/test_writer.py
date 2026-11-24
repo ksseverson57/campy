@@ -55,6 +55,20 @@ def test_quick_sync(codec_name, encoder):
 	assert args == ["-bf:v", "0", "-preset", "faster", "-q", "22"]
 
 
+@pytest.mark.parametrize("pix_fmt_out", ["rgb0", "bgr0", "yuv420p"])
+def test_quick_sync_gets_nv12(pix_fmt_out):
+	# Quick Sync takes 8-bit video as NV12 only; asked for yuv420p, ffmpeg
+	# would switch to NV12 itself, with a warning
+	codec, pix_fmt, args = writer.EncoderArgs(Params(gpuID=0, gpuMake="intel", pixelFormatOutput=pix_fmt_out))
+	assert pix_fmt == "nv12"
+
+
+@pytest.mark.parametrize("gpu", [dict(gpuID=-1), dict(gpuID=0, gpuMake="amd")])
+def test_yuv420p_kept_elsewhere(gpu):
+	codec, pix_fmt, args = writer.EncoderArgs(Params(pixelFormatOutput="yuv420p", **gpu))
+	assert pix_fmt == "yuv420p"
+
+
 @pytest.mark.parametrize("codec_name, encoder", [("h264", "h264_amf"), ("h265", "hevc_amf")])
 def test_amf(codec_name, encoder):
 	codec, pix_fmt, args = writer.EncoderArgs(Params(gpuID=0, gpuMake="amd", codec=codec_name))
