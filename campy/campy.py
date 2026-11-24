@@ -19,7 +19,7 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator
+from campy import writer, display, configurator, windowfeed
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt
@@ -48,17 +48,22 @@ def AcquireOneCamera(n_cam):
 	cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
 
 	# Initialize queues for display, video writer, and stop messages
-	dispQueue = deque([], 2)
 	writeQueue = deque()
 	stopReadQueue = deque([],1)
 	stopWriteQueue = deque([],1)
 
-	# Start image window display thread
-	threading.Thread(
-		target = display.DisplayFrames,
-		daemon = True,
-		args = (cam_params, dispQueue,),
-		).start()
+	if cam_params["displayMode"] == "one-window":
+		# Send frames to the window that shows every camera (campy/window.py)
+		dispQueue = windowfeed.Feed(cam_params, windowfeed.queues[n_cam])
+	else:
+		dispQueue = deque([], 2)
+
+		# Start image window display thread
+		threading.Thread(
+			target = display.DisplayFrames,
+			daemon = True,
+			args = (cam_params, dispQueue,),
+			).start()
 
 	# Start grabbing frames ("producer" thread)
 	threading.Thread(
@@ -74,10 +79,23 @@ def AcquireOneCamera(n_cam):
 def Main():
 	with HandleKeyboardInterrupt():
 		# Acquire cameras in parallel with Windows- and Linux-compatible pool
-		p = mp.get_context("spawn").Pool(params["numCams"])
-		p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		ctx = mp.get_context("spawn")
+		if params["displayMode"] == "one-window":
+			# One window, in a process of its own, shows every camera
+			window = windowfeed.WindowProcess(ctx, params)
+			p = ctx.Pool(params["numCams"], windowfeed.SetQueues, (window.queues,))
+		else:
+			window = None
+			p = ctx.Pool(params["numCams"])
+		try:
+			p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		finally:
+			if window is not None:
+				window.Stop()
 
 	CloseSystems(systems, params)
 
 # Open systems, creates global 'systems' and 'params' variables
-systems, params = OpenSystems()
+# (but not in the process of the window that shows every camera, which only draws frames)
+if mp.current_process().name != windowfeed.PROCESS_NAME:
+	systems, params = OpenSystems()

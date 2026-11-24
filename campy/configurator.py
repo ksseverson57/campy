@@ -51,6 +51,7 @@ def DefaultParams():
 	params["chunkLengthInSec"] = 5
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 2
+	params["displayMode"] = "per-camera" # "per-camera": a window per camera; "one-window": every camera in one
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -59,6 +60,9 @@ def DefaultParams():
 	params["digitalPins"] = [0,1,2,3,4,5,6]
 
 	return params
+
+
+DISPLAY_MODES = ("per-camera", "one-window")
 
 
 def AutoParams(params, default_params):
@@ -85,6 +89,11 @@ def AutoParams(params, default_params):
 			params[key] = default_value
 			print("{} set to invalid value in config. Setting to default ({})."\
 					.format(key, default_value))
+
+	if params["displayMode"] not in DISPLAY_MODES:
+		print("displayMode set to invalid value in config ({}; one of {}). Setting to default ({})."\
+				.format(params["displayMode"], ", ".join(DISPLAY_MODES), default_params["displayMode"]))
+		params["displayMode"] = default_params["displayMode"]
 
 	# Handle missing config parameters
 	if "numCams" in params.keys():
@@ -387,6 +396,13 @@ def ParseClargs(parser):
 		dest="displayDownsample",
 		type=int,
 		help="Downsampling factor for displaying images.",
+	)
+	parser.add_argument(
+		"--displayMode",
+		dest="displayMode",
+		choices=DISPLAY_MODES,
+		help="'per-camera': a window for each camera. 'one-window': every camera side by side in one window, \
+			drawn in a process of its own that never slows the recording.",
 	)
 
 	# Microcontroller triggering arguments

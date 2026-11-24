@@ -128,7 +128,7 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 	cam, camera, cam_params = OpenCamera(cam_params, stopWriteQueue)
 
 	# Use Basler's default display window on Windows. Not supported on Linux
-	if sys.platform=='win32' and cam_params["cameraMake"] == 'basler':
+	if PylonWindow(cam_params):
 		dispQueue = cam.OpenPylonImageWindow(cam_params)
 
 	# Create dictionary for appending frame number and timestamp information
@@ -155,6 +155,9 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 
 			# Display converted, downsampled image in the Window
 			if frameNumber % grabdata["frameRatio"] == 0:
+				if cam_params["displayMode"] == "one-window":
+					# The frame's number and time, and the frames waiting to be written, go with it
+					dispQueue.Next(frameNumber, timeStamp, len(writeQueue))
 				img = cam.DisplayImage(cam_params, dispQueue, grabResult)
 
 			CountFPS(grabdata, frameNumber, timeStamp)
@@ -172,9 +175,15 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 	# Close the camaera, save metadata, and tell writer and display to close
 	cam.CloseCamera(cam_params, camera)
 	SaveMetadata(cam_params, grabdata)
-	if not sys.platform=='win32' or not cam_params['cameraMake'] == 'basler':
+	if not PylonWindow(cam_params):
 		dispQueue.append('STOP')
 	stopWriteQueue.append('STOP')
+
+
+def PylonWindow(cam_params):
+	# Basler cameras on Windows show in Pylon's own window, unless every camera is in one window
+	return sys.platform == 'win32' and cam_params['cameraMake'] == 'basler' \
+		and cam_params['displayMode'] != 'one-window'
 
 
 def SaveMetadata(cam_params, grabdata):
