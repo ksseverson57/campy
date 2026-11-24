@@ -131,10 +131,12 @@ A calibration recording, one whose `videoFilename` has "calibration" in it (`--v
 Each camera's "metadata.csv" records the run's folder as `recordingFolder`. With `sessionFolder`, two cameras with the same name (`cameraNames`, compared ignoring case) would write into one folder, so campy stops before recording and says which.
 
 ### Calibrating the cameras (optional)
-campy's one window can show a ChArUco calibration board live in every camera, to help record a calibration video that covers each camera's view.
+campy can help record a calibration video and then calibrate every camera from it with [calibrat3](https://github.com/talmolab/calibrat3), giving the `calibration.toml` that [LUC3D](https://github.com/talmolab/luc3d) and [sleap-anipose](https://github.com/talmolab/sleap-anipose) use for 3D.
 
 **What to install** (only for this; recording without it needs none of them):
-- `pip install opencv-python` (4.7 or newer), for the calibration view.
+- `pip install opencv-python` (4.7 or newer), for the calibration view;
+- a calibrat3 checkout: `git clone https://github.com/talmolab/calibrat3`;
+- either [Node.js](https://nodejs.org) 20 or newer, which runs calibrat3's command line, or Google Chrome and `pip install playwright`, which runs calibrat3's page in Chrome without showing it (Playwright uses the installed Chrome; no browser download is needed).
 
 **1. The board.** Print or buy a ChArUco board and tell campy which it is:
 ```
@@ -149,6 +151,25 @@ calibrationBoard: "CCT300200C" # a calib.io board, by SKU or id (calibio-300x200
 calibrationMode: True # also sets displayMode: "one-window"
 ```
 Each camera's tile then shows the board's corners as campy finds them (yellow dots; cyan marker outlines while an `"auto"` board is still being identified), the parts of the frame where corners have been seen so far (green), how many views the camera saw the board well in, and, for each other camera, in how many frames both saw it: what the cameras' positions are calibrated from. Move the board slowly through every camera's view, near and far, tilted, until each camera's frame is covered and no camera pair reads 0. The view runs in the window's process on the frames it is shown, a few per second and at most half a core, so it never slows the recording; pairs count frames by number, so they are meaningful for cameras on a shared trigger; set `displayDownsample: 1` if the board looks too small to be found.
+
+**3. The recording.** Record into a session folder, with "calibration" in the video's name, and say where calibrat3 is:
+```
+sessionFolder: True
+videoFilename: "calibration.mp4"
+calibrate:
+  calibrat3: "/path/to/calibrat3"
+  runner: "auto" # "node" or "chrome"; auto takes Node when it can
+  target: 300 # optional: frames sampled for the board (calibrat3's default otherwise)
+```
+Before recording, campy says if anything would keep it from calibrating afterwards. When the recording ends, campy writes the board to `board.toml` in the run's folder and calibrates it with calibrat3. It prints each camera's reprojection error and whether the camera made it into the calibration:
+```
+Calibration: 4 of 4 cameras in calibrations/2026-11-24_14-05-11/calibration.toml (median reprojection error 0.31 px)
+  back  median 0.28 px, p95 0.70 px, board in 88 sampled frames: in calibration.toml
+  ...
+```
+**What you get**, in the run's folder: `calibration.toml` (anipose's format: one `[cam_N]` per camera, named as `cameraNames`), `board.toml`, `fit_report.json` (calibrat3's report: each camera's errors, intrinsics, positions) and `fit_log.txt` (what calibrat3 did). If calibration fails, campy says why and the recording stays as it is; you can then open the run's folder in calibrat3's page yourself.
+
+**Using it:** copy `calibration.toml` into a session's run folder, beside its camera folders, and load that folder in LUC3D (Load Session Folder) or sleap-anipose. Keep calibration runs in a `videoFolder` of their own (see above).
 
 ### Stop Recording:
 - Campy can be configured to stop automatically after set recording time (e.g., 1 hour):

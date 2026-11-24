@@ -19,7 +19,7 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator, windowfeed
+from campy import writer, display, configurator, windowfeed, calibrate
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt
@@ -101,6 +101,10 @@ def Main():
 		UseRecordingFolder(folder)
 		print("Recording into {}".format(folder), flush=True)
 
+	# calibrate: say now what would keep campy from calibrating this recording afterwards
+	for problem in calibrate.Check(params):
+		print("This calibration recording can't be calibrated afterwards: {}.".format(problem), flush=True)
+
 	with HandleKeyboardInterrupt():
 		# Acquire cameras in parallel with Windows- and Linux-compatible pool
 		ctx = mp.get_context("spawn")
@@ -117,6 +121,10 @@ def Main():
 				window.Stop()
 
 	CloseSystems(systems, params)
+
+	if calibrate.Wanted(params):
+		# A calibration recording: calibrate the cameras from it (campy/calibrate.py)
+		calibrate.AfterRecording(params, folder or params["videoFolder"], window.result if window else None)
 
 # Open systems, creates global 'systems' and 'params' variables
 # (but not in the process of the window that shows every camera, which only draws frames)

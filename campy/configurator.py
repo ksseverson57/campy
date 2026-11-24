@@ -5,6 +5,7 @@ import os, ast, yaml, time, logging, multiprocessing
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from campy.cameras import unicam
 from campy.utils import boards
+from campy import calibrate
 
 
 def DefaultParams():
@@ -55,10 +56,11 @@ def DefaultParams():
 	params["displayDownsample"] = 2
 	params["displayMode"] = "per-camera" # "per-camera": a window per camera; "one-window": every camera in one
 
-	# Calibration parameters (campy/calibview.py)
+	# Calibration parameters (campy/calibview.py, campy/calibrate.py)
 	params["calibrationMode"] = False # True: the one window starts in its calibration view (key c)
 	params["calibrationBoard"] = None # a calib.io board's id or SKU, "auto", or a dict (utils/boards.py)
 	params["calibrationSquareMm"] = None # "auto": the square size, when calib.io sells the grid in several
+	params["calibrate"] = None # {calibrat3: <checkout>, runner: auto|node|chrome, target: <frames>}
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -138,6 +140,7 @@ def CheckCalibration(params):
 	boards.Board(params["calibrationBoard"], params["calibrationSquareMm"])
 	if params["calibrationSquareMm"] is not None:
 		boards.SquareHint(params["calibrationSquareMm"])
+	calibrate.Settings(params)
 	if params["calibrationMode"] and params["displayMode"] != "one-window":
 		if multiprocessing.parent_process() is None: # said once, not again by each camera's process
 			print("calibrationMode: the calibration view is drawn in the one window, so displayMode is one-window.")
@@ -458,6 +461,13 @@ def ParseClargs(parser):
 		type=float,
 		help="With calibrationBoard 'auto': the board's square side in mm, when calib.io sells its grid in \
 			several sizes.",
+	)
+	parser.add_argument(
+		"--calibrate",
+		dest="calibrate",
+		type=yaml.safe_load,
+		help="After a calibration recording (a videoFilename with 'calibration' in it, with sessionFolder), \
+			calibrate the cameras with calibrat3: e.g. \"{calibrat3: ../calibrat3, runner: auto}\".",
 	)
 
 	# Microcontroller triggering arguments
