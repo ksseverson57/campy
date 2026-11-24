@@ -19,7 +19,7 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator, startup
+from campy import writer, display, configurator, startup, statusline
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt, StartPrinter, StopPrinter
@@ -41,6 +41,11 @@ def OpenSystems():
 def CloseSystems(systems, params):
 	trigger.StopTriggers(systems, params)
 	unicam.CloseSystems(systems, params)
+
+
+def InitCameraProcess(counters):
+	# Each camera process, as the pool starts it: the counters the status line reads (statusLine)
+	statusline.UseCounters(counters)
 
 
 def AcquireOneCamera(n_cam):
@@ -84,12 +89,28 @@ def RecordOneCamera(n_cam):
 
 
 def Main():
+	# Optionally, one status line on the console while recording (statusLine), drawn
+	# from counters the camera processes share
+	mode = statusline.Prepare(params)
+	counters = statusline.MakeCounters(params["numCams"]) if mode else None
 	with HandleKeyboardInterrupt():
 		# Acquire cameras in parallel with Windows- and Linux-compatible pool
-		p = mp.get_context("spawn").Pool(params["numCams"])
-		p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		p = mp.get_context("spawn").Pool(params["numCams"], initializer=InitCameraProcess, initargs=(counters,))
+		line = None
+		if mode:
+			names = [params["cameraNames"][n] for n in range(params["numCams"])]
+			line = statusline.StatusLine(mode, counters, names).Start()
+		try:
+			p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		finally:
+			if line is not None:
+				line.Stop()
 
 	CloseSystems(systems, params)
+
+# In a camera process, when the main process shows the status line, each line
+# printed wipes it first (statusLine)
+statusline.Child()
 
 # Open systems, creates global 'systems' and 'params' variables
 systems, params = OpenSystems()

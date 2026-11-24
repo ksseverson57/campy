@@ -53,6 +53,7 @@ def DefaultParams():
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 2
 	params["consoleSummary"] = False
+	params["statusLine"] = "never"
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -396,6 +397,12 @@ def ParseClargs(parser):
 		type=ast.literal_eval,
 		help="If True, each camera prints one line when it is ready to trigger (its settings and video) \
 			and one when its video is closed, instead of each setup step.",
+	)
+	parser.add_argument(
+		"--statusLine",
+		dest="statusLine",
+		help="One status line on the console while recording, rewritten in place, instead of each \
+			camera's progress lines: 'never', 'auto' (only when the output is a console, not a file), 'always'.",
 	)
 
 	# Microcontroller triggering arguments

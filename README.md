@@ -120,6 +120,15 @@ Camera1 saved 24000 frames at 80 fps and its metadata: ./test/Camera1/0.mp4 hold
 ```
 Problems are still printed straight away, with the camera's name in front. A camera that does not get ready prints every step it took. With `cameraDebug: True`, every step is printed as before.
 
+While recording, each camera prints a progress line every `chunkLengthInSec`. For one status line at the bottom of the console instead, rewritten in place about once a second, include this in config.yaml:
+```
+statusLine: "auto"
+```
+```
+Recording 3:00 · Camera0 10,800 · Camera1 10,800 · Camera2 10,800 frames · 60.0 fps
+```
+It shows the time since the first frame, each camera's frame count and the frame rate over the last 5 s (each camera's own rate when they differ). Every other message still prints as its own line above it. `"auto"` shows it only when the output is a console: output redirected to a file or a pipe keeps the progress lines. `"always"` shows it anyway (the log then holds the console codes), and `"never"` (the default) keeps the progress lines.
+
 ### Helpful tips
 - To debug broken ffmpeg pipe error, include this in config.yaml:
 ```
