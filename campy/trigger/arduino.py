@@ -11,6 +11,7 @@ E.g. Wait for 'Ready' message from Arduino to Python instead of "dumb" sleep
 
 import serial
 import time, logging
+from campy.utils.utils import Say
 
 
 def StartTriggers(systems, params):
@@ -32,8 +33,8 @@ def StartTriggers(systems, params):
 		# Send command string
 		systems["serial"].write(serialString.encode())
 
-		print("Arduino on port {} is ready to trigger pins {} at {} fps."\
-			.format(params["serialPort"], params["digitalPins"], params["frameRate"]), flush=True)
+		Say("Arduino on port {} is ready to trigger pins {} at {} fps."\
+			.format(params["serialPort"], params["digitalPins"], params["frameRate"]))
 
 	except Exception as e:
 		pass
@@ -41,7 +42,7 @@ def StartTriggers(systems, params):
 
 
 def StopTriggers(systems):
-	print("Closing serial connection...")
+	Say("Closing serial connection...")
 
 	# Repeat the same Pyserial command, except encode frame rate as "-1"
 	serialList = systems["serialCommand"]

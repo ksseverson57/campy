@@ -7,6 +7,8 @@ import os, sys, time, csv, logging
 import numpy as np
 from collections import deque
 from scipy import io as sio
+from campy.utils.utils import Say
+from campy import startup, statusline
 
 
 def ImportCam(make):
@@ -17,7 +19,7 @@ def ImportCam(make):
 	elif make == "emu":
 		from campy.cameras import emu as cam
 	else:
-		print('Camera make is not supported by CamPy. Check config.', flush=True)
+		Say('Camera make is not supported by CamPy. Check config.')
 	return cam
 
 
@@ -49,10 +51,12 @@ def OpenCamera(cam_params, stopWriteQueue):
 	# Import the cam module
 	cam = ImportCam(cam_params["cameraMake"])
 
+	# With consoleSummary, what it says as it opens is one line once it is ready (campy/startup.py)
+	startup.Begin(cam_params)
 	try:
 		camera, cam_params = cam.OpenCamera(cam_params)
 
-		print("Opened {}: {} {} serial# {}".format( \
+		startup.Step("Opened {}: {} {} serial# {}".format( \
 			cam_params["cameraName"],
 			cam_params["cameraMake"], 
 			cam_params["cameraModel"],
@@ -110,15 +114,18 @@ def GrabData(cam_params):
 def StartGrabbing(camera, cam_params, cam):
 	grabbing = cam.StartGrabbing(camera)
 	if grabbing:
-		print(cam_params["cameraName"], "ready to trigger.")
+		startup.Ready(cam_params)
+	else:
+		startup.Failed("it did not start grabbing")
 	return grabbing
 
 
 def CountFPS(grabdata, frameNumber, timeStamp):
-	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
+	# With statusLine shown, the main process's status line says this instead
+	if frameNumber % grabdata["chunkLengthInFrames"] == 0 and not statusline.Shown():
 		timeElapsed = timeStamp - grabdata["timeStamp"][0]
 		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
-		print('{} collected {} frames at {} fps for {} sec.'\
+		Say('{} collected {} frames at {} fps for {} sec.'\
 			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
 
 
@@ -135,6 +142,8 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 
 	# Start grabbing frames from the camera
 	grabbing = StartGrabbing(camera, cam_params, cam)
+	if grabbing:
+		statusline.State(cam_params["n_cam"], statusline.GRABBING)
 
 	frameNumber = 0
 	while(not stopReadQueue):
@@ -151,6 +160,7 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 			grabdata['frameNumber'].append(frameNumber) # first frame = 1
 			timeStamp = cam.GetTimeStamp(grabResult)
 			grabdata['timeStamp'].append(timeStamp)
+			statusline.Count(cam_params["n_cam"], frameNumber)
 
 			# Display converted, downsampled image in the Window
 			if frameNumber % grabdata["frameRatio"] == 0:
@@ -169,6 +179,7 @@ def GrabFrames(cam_params, writeQueue, dispQueue, stopReadQueue, stopWriteQueue)
 			time.sleep(0.001)
 
 	# Close the camaera, save metadata, and tell writer and display to close
+	statusline.State(cam_params["n_cam"], statusline.ENDED)
 	cam.CloseCamera(cam_params, camera)
 	SaveMetadata(cam_params, grabdata)
 	if not sys.platform=='win32' or not cam_params['cameraMake'] == 'basler':
@@ -188,7 +199,7 @@ def SaveMetadata(cam_params, grabdata):
 		frame_count = grabdata['frameNumber'][-1]
 		time_count = grabdata['timeStamp'][-1]
 		fps_count = int(round(frame_count/time_count))
-		print('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
+		startup.Saved(cam_params, frame_count, fps_count)
 
 		meta = cam_params
 
@@ -216,16 +227,16 @@ def SaveMetadata(cam_params, grabdata):
 				if isinstance(row[1],(list,str,int,float)):
 					w.writerow(row)
 
-		print('Saved metadata for {}.'.format(cam_params['cameraName']))
+		startup.MetadataSaved(cam_params)
 
 	except Exception as e:
 		logging.error('Caught exception: {}'.format(e))
 
 
 def CloseSystems(systems, params):
-	print('Closing systems...')
+	Say('Closing systems...')
 	makes = GetMakeList(params)
 	for m in range(len(makes)):
 		cam = ImportCam(makes[m])
 		cam.CloseSystem(systems[makes[m]]["system"], systems[makes[m]]["deviceList"])
-	print('Exiting campy...')
+	Say('Exiting campy...')

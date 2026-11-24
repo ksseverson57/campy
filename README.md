@@ -107,6 +107,28 @@ recTimeInSeconds: 3600
 - To manually end, press Ctrl^C. Please wait until campy exits!
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
+### Console output
+By default, each camera prints every setup step as it happens, and with several cameras those lines are mixed together. For one line per camera instead, include this in config.yaml:
+```
+consoleSummary: True
+```
+Each camera then prints one line once it is ready to trigger, with its make, model, serial number, frame size and rate, the settings campy gave it and the video it records into, and one line at the end with the frames it saved and what its video holds:
+```
+Camera1 ready to trigger: flir Blackfly S BFS-U3-13Y3M serial 23501329, 1280x1024 at 80 fps, trigger Line3, exposure 750 us, gain 3 dB, gamma off, 100 buffers (Oldest First), h264 on CPU -> ./test/Camera1/0.mp4
+...
+Camera1 saved 24000 frames at 80 fps and its metadata: ./test/Camera1/0.mp4 holds all of them.
+```
+Problems are still printed straight away (campy's own messages name their camera; errors from Python's logging keep their usual `ERROR:root:` form). A camera that does not get ready prints every step it took. With `cameraDebug: True`, every step is printed as before.
+
+While recording, each camera prints a progress line every `chunkLengthInSec`. For one status line at the bottom of the console instead, rewritten in place about once a second, include this in config.yaml:
+```
+statusLine: "auto"
+```
+```
+Recording 3:00 · Camera0 10,800 · Camera1 10,800 · Camera2 10,800 frames · 60.0 fps
+```
+It shows the time since the first frame, each camera's frame count and the frame rate over the last 5 s (each camera's own rate when they differ). Every other message still prints as its own line above it. `"auto"` shows it only when the output is a console: output redirected to a file or a pipe keeps the progress lines. `"always"` shows it anyway (the log then holds the console codes), and `"never"` (the default) keeps the progress lines.
+
 ### Helpful tips
 - To debug broken ffmpeg pipe error, include this in config.yaml:
 ```

@@ -4,6 +4,7 @@
 import os, ast, yaml, time, logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from campy.cameras import unicam
+from campy.utils.utils import Say
 
 
 def DefaultParams():
@@ -51,6 +52,8 @@ def DefaultParams():
 	params["chunkLengthInSec"] = 5
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 2
+	params["consoleSummary"] = False
+	params["statusLine"] = "never"
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -83,7 +86,7 @@ def AutoParams(params, default_params):
 		default_value = default_params[key]
 		if params[key] <= 0:
 			params[key] = default_value
-			print("{} set to invalid value in config. Setting to default ({})."\
+			Say("{} set to invalid value in config. Setting to default ({})."\
 					.format(key, default_value))
 
 	# Handle missing config parameters
@@ -93,7 +96,7 @@ def AutoParams(params, default_params):
 		if "cameraSelection" not in params.keys():
 			params["cameraSelection"] = [n for n in range(params["numCams"])]
 	else:
-		print("Please configure 'numCams' to the number of cameras you want to acquire.")
+		Say("Please configure 'numCams' to the number of cameras you want to acquire.")
 
 	return params
 
@@ -387,6 +390,19 @@ def ParseClargs(parser):
 		dest="displayDownsample",
 		type=int,
 		help="Downsampling factor for displaying images.",
+	)
+	parser.add_argument(
+		"--consoleSummary",
+		dest="consoleSummary",
+		type=ast.literal_eval,
+		help="If True, each camera prints one line when it is ready to trigger (its settings and video) \
+			and one when its video is closed, instead of each setup step.",
+	)
+	parser.add_argument(
+		"--statusLine",
+		dest="statusLine",
+		help="One status line on the console while recording, rewritten in place, instead of each \
+			camera's progress lines: 'never', 'auto' (only when the output is a console, not a file), 'always'.",
 	)
 
 	# Microcontroller triggering arguments
