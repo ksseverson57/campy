@@ -9,6 +9,13 @@
 *.pyx    text diff=python
 *.pyz    text diff=python
 *.pyi    text diff=python
+*.ino    text
+
+# Other text files
+# ================
+*.txt    text
+*.yaml   text
+*.yml    text
 
 # Binary files
 # ============
