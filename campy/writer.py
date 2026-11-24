@@ -110,6 +110,47 @@ def EncoderArgs(cam_params):
 
 	return codec, pix_fmt_out, gpu_params
 
+
+# denoise: the ffmpeg filters each setting runs before the encoder
+DENOISE_FILTERS = {
+	"None": [],
+	"atadenoise": ["atadenoise=s=5"],
+	}
+
+
+def DenoiseArgs(cam_params):
+	"""
+	Temporal denoising before encoding (denoise). "atadenoise" averages each
+	pixel with the same pixel in the 2 frames before and the 2 after (s=5),
+	but only while they differ from it by at most 4 gray levels (of 255,
+	ffmpeg's default thresholds), so no pixel moves by more than 4, and a
+	moving animal's edges, which change by tens of levels, are left alone.
+	It runs on the CPU, first, on the frames as the camera sends them, before
+	ffmpeg converts them to what the encoder takes (-pix_fmt).
+
+	Returns (input_params, output_params, macro_block_size) to add to
+	write_frames' arguments. "None" returns ([], [], 16): the command is
+	exactly as without the setting.
+	- -filter_threads 1: ffmpeg would otherwise start one filter thread per CPU
+	  core for each camera (about 1.5 more cores for 8 cameras at 60 fps); on
+	  one thread, about the CPU of no filter.
+	- imageio-ffmpeg pads a frame whose size isn't a multiple of 16 with a -vf
+	  of its own, which this -vf would replace (ffmpeg keeps only the last
+	  -vf), so the padding is done here, after the filter, and imageio-ffmpeg
+	  is told not to (macro_block_size 1).
+	"""
+	value = str(cam_params.get("denoise", "None"))
+	if value not in DENOISE_FILTERS:
+		raise ValueError('denoise is "None" or "atadenoise", not "{}".'.format(value))
+	filters = list(DENOISE_FILTERS[value])
+	if not filters:
+		return [], [], 16
+	width, height = int(cam_params["frameWidth"]), int(cam_params["frameHeight"])
+	padded = (-(-width // 16) * 16, -(-height // 16) * 16)
+	if padded != (width, height):
+		filters.append("scale={}:{}".format(*padded))
+	return ["-filter_threads", "1"], ["-vf", ",".join(filters)], 1
+
 def OpenWriter(cam_params, queue):
 	try:
 		writing = False
@@ -131,6 +172,7 @@ def OpenWriter(cam_params, queue):
 		else:
 			print("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
 		codec, pix_fmt_out, gpu_params = EncoderArgs(cam_params)
+		denoise_input, denoise_output, macro_block_size = DenoiseArgs(cam_params)
 
 	except Exception as e:
 		logging.error("Caught exception at writer.py OpenWriter: {}".format(e))
@@ -149,8 +191,9 @@ def OpenWriter(cam_params, queue):
 				pix_fmt_out=pix_fmt_out,
 				bitrate=None,
 				ffmpeg_log_level=cam_params["ffmpegLogLevel"], # "warning", "quiet", "info"
-				input_params=["-an"], # "-an" no audio
-				output_params=gpu_params,
+				input_params=["-an"] + denoise_input, # "-an" no audio
+				output_params=gpu_params + denoise_output,
+				macro_block_size=macro_block_size,
 				)
 			writer.send(None) # Initialize the generator
 			writing = True

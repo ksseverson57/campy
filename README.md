@@ -100,6 +100,14 @@ macCompatibleH265: True
 ```
   This tags the video `hvc1` for every encoder, and with the CPU (`gpuID: -1`) also asks libx265 for closed GOPs (`-x265-params open-gop=0`): Apple's decoder fails on libx265's default open GOPs even when the file is tagged `hvc1`. The default, `False`, records as before. An existing .mp4 can be retagged without re-encoding: `ffmpeg -i 0.mp4 -c copy -tag:v hvc1 0-hvc1.mp4` (a libx265 video keeps its open GOPs).
 
+- Denoising before encoding: `denoise: "atadenoise"` runs ffmpeg's temporal denoiser [`atadenoise`](https://ffmpeg.org/ffmpeg-filters.html#atadenoise) (`s=5`) on each camera's frames before they are encoded. Off by default (`"None"`), and it can be set per camera (a list, like other settings).
+  - **What it does:** each pixel is averaged with the same pixel in the 2 frames before and the 2 after, but only while they differ from it by at most 4 gray levels (of 255). Sensor noise in a still background is smoothed; a moving animal's edges change by tens of levels from frame to frame and are left as they are. No pixel moves by more than 4 gray levels.
+  - **Why:** noise is what an encoder spends most bits on in a still arena. With two mice in an 8-camera arena, AV1 on Quick Sync wrote files 20-28% smaller, with no measurable change in SLEAP keypoints or in how well the cameras agreed in 3D.
+  - **CPU:** it runs on the CPU, on one thread per camera (`-filter_threads 1`); with 8 cameras at 60 fps that cost about the same CPU as no filter. It works with every encoder. Only mono cameras were measured; colour and Bayer frames are converted before the filter as well as after it, which costs more.
+```
+denoise: "atadenoise"
+```
+
 ### Camera Triggering
 Campy's trigger module supports Python integration with Arduino and Teensy microcontrollers:
 1. Download Arduino IDE (https://www.arduino.cc/en/software). If using Teensy, install Teensyduino (https://www.pjrc.com/teensy/teensyduino.html).
