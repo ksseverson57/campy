@@ -16,6 +16,7 @@ def DefaultParams():
 	# Recording default parameters
 	params["numCams"] = 1
 	params["videoFolder"] = "./test"
+	params["sessionFolder"] = False # True: each run records into a new <videoFolder>/<date_time>/ (utils/folders.py)
 	params["videoFilename"] = "0.mp4"
 	params["frameRate"] = 100
 	params["recTimeInSec"] = 10
@@ -103,6 +104,9 @@ def ConfigureParams():
 						formatter_class=ArgumentDefaultsHelpFormatter,)
 	clargs = ParseClargs(parser)
 	params = CombineConfigAndClargs(clargs)
+
+	if not isinstance(params["sessionFolder"], bool):
+		raise ValueError("sessionFolder must be True or False, not {!r}.".format(params["sessionFolder"]))
 
 	# Optionally, user can manually set path to find ffmpeg binary.
 	if params["ffmpegPath"] is not "None":
@@ -198,6 +202,14 @@ def ParseClargs(parser):
 		"--videoFolder", 
 		dest="videoFolder", 
 		help="Folder in which to save videos.",
+	)
+	parser.add_argument(
+		"--sessionFolder",
+		dest="sessionFolder",
+		type=ast.literal_eval,
+		help="If True, each run records into a new folder inside videoFolder, named by the date \
+			and time it started (e.g. 2026-11-24_14-05-11), laid out as a session folder for \
+			LUC3D and sleap-anipose. A calibration video goes into <camera>/calibration_images/.",
 	)
 	parser.add_argument(
 		"--videoFilename", 
