@@ -46,6 +46,7 @@ def DefaultParams():
 	params["codec"] = "h264"  
 	params["quality"] = 21
 	params["preset"] = "None"
+	params["macCompatibleH265"] = False
 
 	# Display parameters
 	params["chunkLengthInSec"] = 5
@@ -367,6 +368,13 @@ def ParseClargs(parser):
 		type=ast.literal_eval,
 		help="Compression preset (e.g. 'slow', 'fast', 'veryfast'). \
 				Incorrect settings may break the pipe. Test with ffmpegLogLevel 'warning' or 'info'.",
+	)
+	parser.add_argument(
+		"--macCompatibleH265",
+		dest="macCompatibleH265",
+		type=ast.literal_eval,
+		help="If True, H.265 video is written so that Apple's decoder opens it \
+			(MATLAB on a Mac, QuickTime, Safari): tagged hvc1, and closed GOPs on the CPU.",
 	)
 
 	# Display and CLI feedback arguments

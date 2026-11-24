@@ -70,6 +70,12 @@ pip install -e .
 ```
 campy-acquire --help
 ```
+- H.265 on a Mac: MATLAB's VideoReader, QuickTime and Safari use Apple's decoder, which opens H.265 in an .mp4 or .mov only when the file tags it `hvc1` (ffmpeg's own tag is `hev1`). To record H.265 they can open, include in config.yaml:
+```
+codec: "h265"
+macCompatibleH265: True
+```
+  This tags the video `hvc1` for every encoder, and with the CPU (`gpuID: -1`) also asks libx265 for closed GOPs (`-x265-params open-gop=0`): Apple's decoder fails on libx265's default open GOPs even when the file is tagged `hvc1`. The default, `False`, records as before. An existing .mp4 can be retagged without re-encoding: `ffmpeg -i 0.mp4 -c copy -tag:v hvc1 0-hvc1.mp4` (a libx265 video keeps its open GOPs).
 
 ### Camera Triggering
 Campy's trigger module supports Python integration with Arduino and Teensy microcontrollers:

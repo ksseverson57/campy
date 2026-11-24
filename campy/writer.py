@@ -92,6 +92,22 @@ def EncoderArgs(cam_params):
 			elif cam_params["codec"] == "h265":
 				codec = "hevc_qsv"
 
+	# macCompatibleH265: H.265 that Apple's decoder opens (MATLAB's VideoReader
+	# on a Mac, QuickTime, Safari). It opens H.265 in an .mp4 or .mov only when
+	# the file tags it "hvc1"; ffmpeg's own tag is "hev1", which it refuses
+	# ("Cannot Decode"). hvc1 keeps the parameter sets in the file's header,
+	# where ffmpeg puts them for every encoder. libx265 also writes closed GOPs:
+	# its default open GOP makes each later keyframe a CRA frame whose leading
+	# B-frames predict from the frames before it, which Apple's decoder fails
+	# on even with hvc1, and a reader that seeks to one of those B-frames
+	# gives the keyframe instead. The GPU encoders already write closed GOPs.
+	if cam_params.get("macCompatibleH265", False) and cam_params["codec"] == "h265":
+		if codec == "libx265":
+			gpu_params += ["-x265-params", "open-gop=0"]
+		extension = os.path.splitext(str(cam_params["videoFilename"]))[1].lower()
+		if extension in (".mp4", ".mov"):
+			gpu_params += ["-tag:v", "hvc1"]
+
 	return codec, pix_fmt_out, gpu_params
 
 def OpenWriter(cam_params, queue):

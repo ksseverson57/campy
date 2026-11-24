@@ -82,3 +82,35 @@ def test_amf(codec_name, encoder):
 	# -hwaccel_device is an input option: ffmpeg refuses it among the output
 	# options, and the camera's writer could not start
 	assert "-hwaccel_device" not in args
+
+
+@pytest.mark.parametrize("gpu, encoder", [
+	(dict(gpuID=-1), "libx265"),
+	(dict(gpuID=0, gpuMake="nvidia"), "hevc_nvenc"),
+	(dict(gpuID=0, gpuMake="intel"), "hevc_qsv"),
+	(dict(gpuID=0, gpuMake="amd"), "hevc_amf"),
+	])
+def test_mac_compatible_h265(gpu, encoder):
+	plain = writer.EncoderArgs(Params(codec="h265", **gpu))
+	codec, pix_fmt, args = writer.EncoderArgs(Params(codec="h265", macCompatibleH265=True, **gpu))
+	assert codec == encoder
+	added = ["-x265-params", "open-gop=0"] if encoder == "libx265" else []
+	assert args == plain[2] + added + ["-tag:v", "hvc1"]
+
+
+def test_mac_compatible_h265_off_by_default():
+	# An existing config records exactly as before
+	for gpu in [dict(gpuID=-1), dict(gpuID=0, gpuMake="nvidia"), dict(gpuID=0, gpuMake="intel")]:
+		codec, pix_fmt, args = writer.EncoderArgs(Params(codec="h265", **gpu))
+		assert "-tag:v" not in args and "-x265-params" not in args
+
+
+@pytest.mark.parametrize("filename, tagged", [("0.mp4", True), ("0.MOV", True), ("0.mkv", False)])
+def test_mac_compatible_h265_containers(filename, tagged):
+	# hvc1 is an MP4/MOV tag; other containers are left as they are
+	codec, pix_fmt, args = writer.EncoderArgs(Params(codec="h265", macCompatibleH265=True, videoFilename=filename))
+	assert ("-tag:v" in args) == tagged
+
+
+def test_mac_compatible_h265_leaves_h264_alone():
+	assert writer.EncoderArgs(Params(macCompatibleH265=True)) == writer.EncoderArgs(Params())
