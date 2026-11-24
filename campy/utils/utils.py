@@ -60,10 +60,12 @@ class Printer:
 
 class PrinterHandler(logging.Handler):
 	# logging's messages, through the printer to stderr, in order with Say's.
-	# As logging writes them with no handler set up: WARNING and up, the
-	# message (and traceback) alone.
+	# As logging writes them with no handler set up (logging.lastResort, or
+	# basicConfig's, which logging.error() sets up): WARNING and up, as
+	# "ERROR:root:message" (and traceback).
 	def __init__(self, printer):
 		logging.Handler.__init__(self, logging.WARNING)
+		self.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
 		self.printer = printer
 
 	def emit(self, record):

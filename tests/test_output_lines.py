@@ -120,7 +120,7 @@ def test_the_printer_writes_in_order_one_write_each_and_all_of_it_on_stop(monkey
 		utils.StopPrinter()
 	utils.Say("written directly again")
 	assert out.writes == ["line {}\n".format(i) for i in range(1000)] + \
-		["an error\n", "the last line\n", "written directly again\n"]
+		["ERROR:campy.test_output_lines:an error\n", "the last line\n", "written directly again\n"] # as logging.error prints without the printer
 
 
 def test_a_stuck_stdout_does_not_hold_up_the_camera_thread(tmp_path, monkeypatch):
