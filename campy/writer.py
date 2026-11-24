@@ -3,6 +3,7 @@
 from imageio_ffmpeg import write_frames
 import os, sys, time, logging
 from campy.utils.utils import QueueKeyboardInterrupt, Say
+from campy import startup
 
 def OpenWriter(cam_params, queue):
 	try:
@@ -13,7 +14,7 @@ def OpenWriter(cam_params, queue):
 
 		if not os.path.isdir(folder_name):
 			os.makedirs(folder_name)
-			Say("Made directory {}.".format(folder_name))
+			startup.Folder("Made directory {}.".format(folder_name), cam_params)
 
 		# Flip blue and red for flir camera input
 		if cam_params["pixelFormatInput"] == "bayer_bggr8" and cam_params["cameraMake"] == "flir":
@@ -32,7 +33,7 @@ def OpenWriter(cam_params, queue):
 
 		# CPU compression
 		if cam_params["gpuID"] == -1:
-			Say("Opened: {} using CPU to compress the stream.".format(full_file_name))
+			startup.Video("Opened: {} using CPU to compress the stream.".format(full_file_name), cam_params)
 			if preset == "None":
 				preset = "fast"
 			gpu_params = [
@@ -55,7 +56,8 @@ def OpenWriter(cam_params, queue):
 		# GPU compression
 		else:
 			# Nvidia GPU (NVENC) encoder optimized parameters
-			Say("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
+			startup.Video("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]),
+				cam_params)
 			if cam_params["gpuMake"] == "nvidia":
 				if preset == "None":
 					preset = "fast"
@@ -142,12 +144,14 @@ def OpenWriter(cam_params, queue):
 def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 	# Start ffmpeg video writer 
 	writer, writing, readQueue = OpenWriter(cam_params, stopReadQueue)
+	written = 0 # frames given to ffmpeg
 
 	with QueueKeyboardInterrupt(readQueue):
 		# Write until interrupted and/or stop message received
 		while(writing):
 			if writeQueue:
 				writer.send(writeQueue.popleft())
+				written += 1
 			else:
 				# Once queue is depleted and grabber stops, then stop writing
 				if stopWriteQueue:
@@ -159,5 +163,8 @@ def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 	Say("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
 	time.sleep(1)
 	writer.close()
+	# With consoleSummary, the camera's end line: what it saved and what its video holds
+	startup.Closed(cam_params, written,
+		os.path.join(cam_params["videoFolder"], cam_params["cameraName"], cam_params["videoFilename"]))
     
 

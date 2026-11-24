@@ -107,6 +107,19 @@ recTimeInSeconds: 3600
 - To manually end, press Ctrl^C. Please wait until campy exits!
 - Three files, "frametimes.mat", "frametimes.npy", and "metadata.csv", will be saved along with the video file in each camera folder containing timestamps, frame numbers, and other recording metadata.
 
+### Console output
+By default, each camera prints every setup step as it happens, and with several cameras those lines are mixed together. For one line per camera instead, include this in config.yaml:
+```
+consoleSummary: True
+```
+Each camera then prints one line once it is ready to trigger, with its make, model, serial number, frame size and rate, the settings campy gave it and the video it records into, and one line at the end with the frames it saved and what its video holds:
+```
+Camera1 ready to trigger: flir Blackfly S BFS-U3-13Y3M serial 23501329, 1280x1024 at 80 fps, trigger Line3, exposure 750 us, gain 3 dB, gamma off, 100 buffers (Oldest First), h264 on CPU -> ./test/Camera1/0.mp4
+...
+Camera1 saved 24000 frames at 80 fps and its metadata: ./test/Camera1/0.mp4 holds all of them.
+```
+Problems are still printed straight away, with the camera's name in front. A camera that does not get ready prints every step it took. With `cameraDebug: True`, every step is printed as before.
+
 ### Helpful tips
 - To debug broken ffmpeg pipe error, include this in config.yaml:
 ```

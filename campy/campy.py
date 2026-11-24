@@ -19,7 +19,7 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator
+from campy import writer, display, configurator, startup
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt, StartPrinter, StopPrinter
@@ -51,6 +51,7 @@ def AcquireOneCamera(n_cam):
 	try:
 		RecordOneCamera(n_cam)
 	finally:
+		startup.Failed() # with consoleSummary, a camera that never got ready: what it did as it opened
 		StopPrinter()
 
 

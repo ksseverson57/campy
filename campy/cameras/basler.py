@@ -4,6 +4,7 @@ import pypylon.pylon as pylon
 import pypylon.genicam as geni
 from campy.cameras import unicam
 from campy.utils.utils import Say
+from campy import startup
 import os, sys, time, logging
 import numpy as np
 from collections import deque
@@ -44,6 +45,9 @@ def OpenCamera(cam_params):
 	# Load default camera settings
 	cam_params['cameraModel'] = GetModelName(camera)
 	cam_params = LoadSettings(cam_params, camera)
+	# What the ready line says, with consoleSummary (campy/startup.py)
+	startup.Setting("settings", "settings from {}".format(os.path.basename(str(cam_params["cameraSettings"]))))
+	startup.Setting("buffers", "{} buffers".format(cam_params["bufferSize"]))
 
 	return camera, cam_params
 

@@ -8,6 +8,7 @@ import numpy as np
 from collections import deque
 from scipy import io as sio
 from campy.utils.utils import Say
+from campy import startup
 
 
 def ImportCam(make):
@@ -50,10 +51,12 @@ def OpenCamera(cam_params, stopWriteQueue):
 	# Import the cam module
 	cam = ImportCam(cam_params["cameraMake"])
 
+	# With consoleSummary, what it says as it opens is one line once it is ready (campy/startup.py)
+	startup.Begin(cam_params)
 	try:
 		camera, cam_params = cam.OpenCamera(cam_params)
 
-		Say("Opened {}: {} {} serial# {}".format( \
+		startup.Step("Opened {}: {} {} serial# {}".format( \
 			cam_params["cameraName"],
 			cam_params["cameraMake"], 
 			cam_params["cameraModel"],
@@ -111,7 +114,9 @@ def GrabData(cam_params):
 def StartGrabbing(camera, cam_params, cam):
 	grabbing = cam.StartGrabbing(camera)
 	if grabbing:
-		Say("{} ready to trigger.".format(cam_params["cameraName"]))
+		startup.Ready(cam_params)
+	else:
+		startup.Failed("it did not start grabbing")
 	return grabbing
 
 
@@ -189,7 +194,7 @@ def SaveMetadata(cam_params, grabdata):
 		frame_count = grabdata['frameNumber'][-1]
 		time_count = grabdata['timeStamp'][-1]
 		fps_count = int(round(frame_count/time_count))
-		Say('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
+		startup.Saved(cam_params, frame_count, fps_count)
 
 		meta = cam_params
 
@@ -217,7 +222,7 @@ def SaveMetadata(cam_params, grabdata):
 				if isinstance(row[1],(list,str,int,float)):
 					w.writerow(row)
 
-		Say('Saved metadata for {}.'.format(cam_params['cameraName']))
+		startup.MetadataSaved(cam_params)
 
 	except Exception as e:
 		logging.error('Caught exception: {}'.format(e))

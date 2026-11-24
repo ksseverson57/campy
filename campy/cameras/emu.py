@@ -4,6 +4,7 @@
 
 from campy.cameras import unicam
 from campy.utils.utils import Say
+from campy import startup
 import os
 import time
 import logging
@@ -49,7 +50,8 @@ def OpenCamera(cam_params, device):
 	cam_params['frameWidth'] = frame_size[0]
 	cam_params['frameHeight'] = frame_size[1]
 
-	Say("Opened {} emulation.".format(cam_params["cameraName"]))
+	startup.Step("Opened {} emulation.".format(cam_params["cameraName"]))
+	startup.Setting("clip", "playing {}".format(os.path.basename(full_file_name)))
 	return camera, cam_params
 
 

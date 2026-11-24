@@ -3,6 +3,7 @@
 import PySpin
 from campy.cameras import unicam
 from campy.utils.utils import Say
+from campy import startup
 import os, sys, time, logging
 import numpy as np
 
@@ -103,10 +104,10 @@ def StartGrabbing(camera):
 		camera.BeginAcquisition()
 		return True
 	except PySpin.SpinnakerException as e:
-		Say("Error: {}".format(e))
+		startup.Warn("Error: {}".format(e))
 		return False
 	except Exception as e:
-		Say("Exception in cameras/flir.py function StartGrabbing(camera): {}".foramt(e))
+		startup.Warn("Exception in cameras/flir.py function StartGrabbing(camera): {}".foramt(e))
 		return False
 
 
@@ -224,7 +225,7 @@ def ConfigureCustomImageSettings(camera, cam_params):
 		try:
 			camera.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
 		except:
-			Say('Could not set white balance')
+			startup.Warn('Could not set white balance')
 
 		cam_params = ConfigureFrameWidth(camera, cam_params)
 		cam_params = ConfigureFrameHeight(camera, cam_params)
@@ -256,24 +257,24 @@ def ConfigureBuffer(camera, cam_params):
 		# Retrieve Buffer Handling Mode Information
 		handling_mode = PySpin.CEnumerationPtr(s_node_map.GetNode("StreamBufferHandlingMode"))
 		if not PySpin.IsAvailable(handling_mode) or not PySpin.IsWritable(handling_mode):
-			Say("Unable to set Buffer Handling mode (node retrieval). Aborting...")
+			startup.Warn("Unable to set Buffer Handling mode (node retrieval). Aborting...")
 			return cam_params
 
 		handling_mode_entry = PySpin.CEnumEntryPtr(handling_mode.GetCurrentEntry())
 		if not PySpin.IsAvailable(handling_mode_entry) or not PySpin.IsReadable(handling_mode_entry):
-			Say("Unable to set Buffer Handling mode (Entry retrieval). Aborting...")
+			startup.Warn("Unable to set Buffer Handling mode (Entry retrieval). Aborting...")
 			return cam_params
 
 		# Set stream buffer Count Mode to manual
 		stream_buffer_count_mode = PySpin.CEnumerationPtr(s_node_map.GetNode("StreamBufferCountMode"))
 		if not PySpin.IsAvailable(stream_buffer_count_mode) or not PySpin.IsWritable(stream_buffer_count_mode):
-			Say("Unable to set Buffer Count Mode (node retrieval). Aborting...")
+			startup.Warn("Unable to set Buffer Count Mode (node retrieval). Aborting...")
 			return cam_params
 
 		stream_buffer_count_mode_manual = PySpin.CEnumEntryPtr(stream_buffer_count_mode.GetEntryByName("Manual"))
 		if not PySpin.IsAvailable(stream_buffer_count_mode_manual) or not PySpin.IsReadable(
 				stream_buffer_count_mode_manual):
-			Say("Unable to set Buffer Count Mode entry (Entry retrieval). Aborting...")
+			startup.Warn("Unable to set Buffer Count Mode entry (Entry retrieval). Aborting...")
 			return cam_params
 
 		stream_buffer_count_mode.SetIntValue(stream_buffer_count_mode_manual.GetValue())
@@ -281,12 +282,13 @@ def ConfigureBuffer(camera, cam_params):
 		# Retrieve and modify Stream Buffer Count
 		buffer_count = PySpin.CIntegerPtr(s_node_map.GetNode("StreamBufferCountManual"))
 		if not PySpin.IsAvailable(buffer_count) or not PySpin.IsWritable(buffer_count):
-			Say("Unable to set Buffer Count (Integer node retrieval). Aborting...")
+			startup.Warn("Unable to set Buffer Count (Integer node retrieval). Aborting...")
 			return cam_params
 
 		# Display Buffer Info
 		buffer_count.SetValue(cam_params["bufferSize"])
-		Say("Buffer count now set to: %d" % buffer_count.GetValue())
+		startup.Step("Buffer count now set to: %d" % buffer_count.GetValue())
+		startup.Setting("buffers", "{} buffers".format(buffer_count.GetValue()))
 
 		if cam_params["bufferMode"] == "OldestFirst":
 			handling_mode_entry = handling_mode.GetEntryByName("OldestFirst")
@@ -297,11 +299,12 @@ def ConfigureBuffer(camera, cam_params):
 		elif cam_params["bufferMode"] == "OldestFirstOverwrite":
 			handling_mode_entry = handling_mode.GetEntryByName("OldestFirstOverwrite")
 		else:
-			Say("BufferMode should be 'OldestFirst', 'NewestFirst', 'NewestOnly' or 'OldestFirstOverwrite'")
+			startup.Warn("BufferMode should be 'OldestFirst', 'NewestFirst', 'NewestOnly' or 'OldestFirstOverwrite'")
 			return cam_params
 
 		handling_mode.SetIntValue(handling_mode_entry.GetValue())
-		Say("BufferMode has been set to {}".format(handling_mode_entry.GetDisplayName()))
+		startup.Step("BufferMode has been set to {}".format(handling_mode_entry.GetDisplayName()))
+		startup.Setting("buffers", "{} buffers ({})".format(buffer_count.GetValue(), handling_mode_entry.GetDisplayName()))
 
 		cam_params["bufferSize"] = stream_buffer_count_mode_manual.GetValue()
 		cam_params["bufferMode"] = handling_mode_entry.GetDisplayName()
@@ -358,7 +361,7 @@ def ConfigureChunkData(camera, cam_params):
 		chunk_selector = PySpin.CEnumerationPtr(nodemap.GetNode("ChunkSelector"))
 
 		if not PySpin.IsAvailable(chunk_selector) or not PySpin.IsReadable(chunk_selector):
-			Say("Unable to retrieve chunk selector. Aborting...")
+			startup.Warn("Unable to retrieve chunk selector. Aborting...")
 			return cam_params
 
 		# Retrieve entries
@@ -426,7 +429,7 @@ def ConfigureExposure(camera, cam_params):
 		# the symbolic of the entry node. Selecting "Off" on the "ExposureAuto" node is thus named "ExposureAuto_Off".
 
 		if camera.ExposureAuto.GetAccessMode() != PySpin.RW:
-			Say("Unable to disable automatic exposure. Aborting...")
+			startup.Warn("Unable to disable automatic exposure. Aborting...")
 			return cam_params
 
 		camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
@@ -441,14 +444,15 @@ def ConfigureExposure(camera, cam_params):
 		# checking SpinView.
 
 		if camera.ExposureTime.GetAccessMode() != PySpin.RW:
-			Say("Unable to set exposure time. Aborting...")
+			startup.Warn("Unable to set exposure time. Aborting...")
 			return cam_params
 
 		# Ensure desired exposure time does not exceed the maximum
 		exposure_time_to_set = cam_params["cameraExposureTimeInUs"]
 		exposure_time_to_set = min(camera.ExposureTime.GetMax(), exposure_time_to_set)
 		camera.ExposureTime.SetValue(exposure_time_to_set)
-		Say("Shutter time set to {} us...".format(exposure_time_to_set))
+		startup.Step("Shutter time set to {} us...".format(exposure_time_to_set))
+		startup.Setting("exposure", "exposure {:g} us".format(exposure_time_to_set))
 		cam_params["exposureTimeInUs"] = exposure_time_to_set
 
 	except Exception as e:
@@ -489,16 +493,16 @@ def ConfigureFrameHeight(camera, cam_params):
 			if offset_y % 4 != 0:
 				while offset_y % 4 != 0:
 					offset_y += 1
-				Say("offset_y is set to {}".format(offset_y))
+				startup.Step("offset_y is set to {}".format(offset_y))
 			node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode("OffsetY"))
 			if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
 				node_offset_y.SetValue(offset_y)
 				cam_params["offsetY"] = offset_y
 			else:
-				Say("OffsetY cannot be set!")
+				startup.Warn("OffsetY cannot be set!")
 		else:
-			Say("Height not available...")
-		Say("Height set to {}...".format(node_height.GetValue()))
+			startup.Warn("Height not available...")
+		startup.Step("Height set to {}...".format(node_height.GetValue()))
 
 	except Exception as e:
 		logging.error("Caught exception at cameras/flir.py ConfigureFrameHeight: {}".format(e))
@@ -540,20 +544,20 @@ def ConfigureFrameWidth(camera, cam_params):
 		if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
 			width_to_set = cam_params["frameWidth"]
 			node_width.SetValue(width_to_set)
-			Say("Width set to {}...".format(node_width.GetValue()))
+			startup.Step("Width set to {}...".format(node_width.GetValue()))
 			offset_x = int((max_w-width_to_set)/2)
 			if offset_x % 4 != 0:
 				while offset_x % 4 != 0:
 					offset_x += 1
-				Say("offset_x is set to {}".format(offset_x))
+				startup.Step("offset_x is set to {}".format(offset_x))
 			node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode("OffsetX"))
 			if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
 				node_offset_x.SetValue(offset_x)
 				cam_params["offsetX"] = offset_x
 			else:
-				Say("OffsetX cannot be set!")
+				startup.Warn("OffsetX cannot be set!")
 		else:
-			Say("Width not available...")
+			startup.Warn("Width not available...")
 
 	except Exception as e:
 		logging.error("Caught exception at cameras/flir.py ConfigureFrameWidth: {}".format(e))
@@ -583,13 +587,13 @@ def ConfigureGain(camera, cam_params):
 		# Retrieve node
 		node_gainauto_mode = PySpin.CEnumerationPtr(nodemap.GetNode("GainAuto"))
 		if not PySpin.IsAvailable(node_gainauto_mode) or not PySpin.IsWritable(node_gainauto_mode):
-			Say("Unable to configure gain (enum retrieval). Aborting...")
+			startup.Warn("Unable to configure gain (enum retrieval). Aborting...")
 			return cam_params
 
 		# EnumEntry node (always associated with an Enumeration node)
 		node_gainauto_mode_off = node_gainauto_mode.GetEntryByName("Off")
 		if not PySpin.IsAvailable(node_gainauto_mode_off):
-			Say("Unable to configure gain (entry retrieval). Aborting...")
+			startup.Warn("Unable to configure gain (entry retrieval). Aborting...")
 			return cam_params
 
 		# Turn off Auto Gain
@@ -598,20 +602,21 @@ def ConfigureGain(camera, cam_params):
 		# Retrieve gain node (float)
 		node_gain = PySpin.CFloatPtr(nodemap.GetNode("Gain"))
 		if not PySpin.IsAvailable(node_gain) or not PySpin.IsWritable(node_gain):
-			Say("Unable to configure gain (float retrieval). Aborting...")
+			startup.Warn("Unable to configure gain (float retrieval). Aborting...")
 			return cam_params
 
 		max_gain = camera.Gain.GetMax()
 
 		if gain > camera.Gain.GetMax():
-			Say("Max. gain is {}dB!".format(max_gain))
+			startup.Warn("Max. gain is {}dB!".format(max_gain))
 			gain = max_gain
 		elif gain <= 0:
 			gain = 0.0
 
 		# Set gain
 		node_gain.SetValue(float(gain))
-		Say("Gain set to {} dB.".format(gain))
+		startup.Step("Gain set to {} dB.".format(gain))
+		startup.Setting("gain", "gain {:g} dB".format(float(gain)))
 		cam_params["gain"] = gain
 
 	except Exception as e:
@@ -638,12 +643,13 @@ def ConfigureGamma(camera, cam_params):
 			node_gamma_enable_bool = PySpin.CBooleanPtr(nodemap.GetNode("GammaEnable"))
 
 			if not PySpin.IsAvailable(node_gamma_enable_bool) or not PySpin.IsWritable(node_gamma_enable_bool):
-				Say("Unable to disable gamma (boolean retrieval). Aborting...")
+				startup.Warn("Unable to disable gamma (boolean retrieval). Aborting...")
 				return cam_params
 
 			# Set value to False (disable gamma correction)
 			node_gamma_enable_bool.SetValue(False)
-			Say("Gamma correction disabled.")
+			startup.Step("Gamma correction disabled.")
+			startup.Setting("gamma", "gamma off")
 
 	except Exception as e:
 		logging.error("Caught error at cameras/flir.py at ConfigureGamma: {}".format(e))
@@ -706,7 +712,7 @@ def ConfigureTrigger(camera, cam_params):
 		# The trigger must be disabled in order to configure whether the source
 		# is software or hardware.
 		if camera.TriggerMode.GetAccessMode() != PySpin.RW:
-			Say("Unable to disable trigger mode (node retrieval). Aborting...")
+			startup.Warn("Unable to disable trigger mode (node retrieval). Aborting...")
 			return cam_params
 		camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
@@ -717,21 +723,24 @@ def ConfigureTrigger(camera, cam_params):
 		# The trigger source must be set to hardware or software while trigger
 		# mode is off.
 		if camera.TriggerSource.GetAccessMode() != PySpin.RW:
-			Say("Unable to get trigger source (node retrieval). Aborting...")
+			startup.Warn("Unable to get trigger source (node retrieval). Aborting...")
 			return cam_params
 
 		# Configure trigger source
 		if cameraTrigger == 'software' or cameraTrigger == 'Software' or cameraTrigger == 'SOFTWARE':
 			camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)
-			Say("Trigger source set to software...")
+			startup.Step("Trigger source set to software...")
+			startup.Setting("trigger", "trigger software")
 		elif cameraTrigger == 'none' or cameraTrigger == 'None' or cameraTrigger == 'NONE':
 			camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
-			Say("Trigger source set to None...")
+			startup.Step("Trigger source set to None...")
+			startup.Setting("trigger", "no trigger (free-running)")
 			return cam_params
 		else:
 			# eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_%s)" % cameraTrigger)
 			eval("camera.TriggerSource.SetValue(PySpin.TriggerSource_{})".format(cameraTrigger))
-			Say("Trigger source set to {}...".format(cameraTrigger))
+			startup.Step("Trigger source set to {}...".format(cameraTrigger))
+			startup.Setting("trigger", "trigger {}".format(cameraTrigger))
 
 		# Turn trigger mode on
 		# Once the appropriate trigger source has been set, turn trigger mode

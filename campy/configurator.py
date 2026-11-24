@@ -52,6 +52,7 @@ def DefaultParams():
 	params["chunkLengthInSec"] = 5
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 2
+	params["consoleSummary"] = False
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -388,6 +389,13 @@ def ParseClargs(parser):
 		dest="displayDownsample",
 		type=int,
 		help="Downsampling factor for displaying images.",
+	)
+	parser.add_argument(
+		"--consoleSummary",
+		dest="consoleSummary",
+		type=ast.literal_eval,
+		help="If True, each camera prints one line when it is ready to trigger (its settings and video) \
+			and one when its video is closed, instead of each setup step.",
 	)
 
 	# Microcontroller triggering arguments
