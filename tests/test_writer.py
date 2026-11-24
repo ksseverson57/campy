@@ -63,5 +63,8 @@ def test_amf(codec_name, encoder):
 	assert args == [
 		"-usage", "lowlatency", "-rc", "cqp",
 		"-qp_i", "21", "-qp_p", "21", "-qp_b", "21",
-		"-bf:v", "0", "-hwaccel_device", "0",
+		"-bf:v", "0",
 		]
+	# -hwaccel_device is an input option: ffmpeg refuses it among the output
+	# options, and the camera's writer could not start
+	assert "-hwaccel_device" not in args

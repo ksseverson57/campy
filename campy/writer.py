@@ -63,8 +63,10 @@ def EncoderArgs(cam_params):
 				"-qp_i", quality,
 				"-qp_p", quality,
 				"-qp_b", quality,
-				"-bf:v", "0",
-				"-hwaccel_device", gpuID,]
+				"-bf:v", "0",]
+			# No "-hwaccel_device": it is an input option, which ffmpeg refuses
+			# among the output options ("cannot be applied to output url"), so
+			# no AMF camera could start. AMF encodes on its default GPU.
 			if pix_fmt_out == "rgb0" or pix_fmt_out == "bgr0":
 				pix_fmt_out = "yuv420p"
 			if cam_params["codec"] == "h264":
