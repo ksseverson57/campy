@@ -23,6 +23,7 @@ from campy import writer, display, configurator
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt
+from campy.utils import folders
 
 def OpenSystems():
 	# Configure parameters
@@ -71,10 +72,25 @@ def AcquireOneCamera(n_cam):
 	writer.WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue)
 
 
+def UseRecordingFolder(folder):
+	# In each camera process: record into this run's folder (sessionFolder)
+	params["recordingFolder"] = folder
+
+
 def Main():
+	# sessionFolder: this run's own new folder inside videoFolder, made once
+	# here. The camera processes read the config again, so they are told which.
+	initializer, initargs = None, ()
+	if folders.SessionFolders(params):
+		folders.CheckCameraNames(params)
+		folder = folders.MakeSessionFolder(params["videoFolder"])
+		UseRecordingFolder(folder)
+		initializer, initargs = UseRecordingFolder, (folder,)
+		print("Recording into {}".format(folder), flush=True)
+
 	with HandleKeyboardInterrupt():
 		# Acquire cameras in parallel with Windows- and Linux-compatible pool
-		p = mp.get_context("spawn").Pool(params["numCams"])
+		p = mp.get_context("spawn").Pool(params["numCams"], initializer, initargs)
 		p.map_async(AcquireOneCamera,range(params["numCams"])).get()
 
 	CloseSystems(systems, params)
