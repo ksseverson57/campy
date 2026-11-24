@@ -4,6 +4,7 @@
 import os, ast, yaml, time, logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from campy.cameras import unicam
+from campy.utils.utils import Say
 
 
 def DefaultParams():
@@ -83,7 +84,7 @@ def AutoParams(params, default_params):
 		default_value = default_params[key]
 		if params[key] <= 0:
 			params[key] = default_value
-			print("{} set to invalid value in config. Setting to default ({})."\
+			Say("{} set to invalid value in config. Setting to default ({})."\
 					.format(key, default_value))
 
 	# Handle missing config parameters
@@ -93,7 +94,7 @@ def AutoParams(params, default_params):
 		if "cameraSelection" not in params.keys():
 			params["cameraSelection"] = [n for n in range(params["numCams"])]
 	else:
-		print("Please configure 'numCams' to the number of cameras you want to acquire.")
+		Say("Please configure 'numCams' to the number of cameras you want to acquire.")
 
 	return params
 

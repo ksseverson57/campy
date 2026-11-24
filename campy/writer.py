@@ -2,7 +2,7 @@
 """
 from imageio_ffmpeg import write_frames
 import os, sys, time, logging
-from campy.utils.utils import QueueKeyboardInterrupt
+from campy.utils.utils import QueueKeyboardInterrupt, Say
 
 def OpenWriter(cam_params, queue):
 	try:
@@ -13,7 +13,7 @@ def OpenWriter(cam_params, queue):
 
 		if not os.path.isdir(folder_name):
 			os.makedirs(folder_name)
-			print("Made directory {}.".format(folder_name))
+			Say("Made directory {}.".format(folder_name))
 
 		# Flip blue and red for flir camera input
 		if cam_params["pixelFormatInput"] == "bayer_bggr8" and cam_params["cameraMake"] == "flir":
@@ -32,7 +32,7 @@ def OpenWriter(cam_params, queue):
 
 		# CPU compression
 		if cam_params["gpuID"] == -1:
-			print("Opened: {} using CPU to compress the stream.".format(full_file_name))
+			Say("Opened: {} using CPU to compress the stream.".format(full_file_name))
 			if preset == "None":
 				preset = "fast"
 			gpu_params = [
@@ -55,7 +55,7 @@ def OpenWriter(cam_params, queue):
 		# GPU compression
 		else:
 			# Nvidia GPU (NVENC) encoder optimized parameters
-			print("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
+			Say("Opened: {} using GPU {} to compress the stream.".format(full_file_name, cam_params["gpuID"]))
 			if cam_params["gpuMake"] == "nvidia":
 				if preset == "None":
 					preset = "fast"
@@ -156,7 +156,7 @@ def WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue):
 				time.sleep(0.01)
 
 	# Close up...
-	print("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
+	Say("Closing video writer for {}. Please wait...".format(cam_params["cameraName"]))
 	time.sleep(1)
 	writer.close()
     
