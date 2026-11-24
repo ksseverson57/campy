@@ -34,6 +34,7 @@ def test_when_it_is_shown(monkeypatch):
 	assert statusline.Wanted("always", Stdout())
 	assert statusline.Prepare({}, Tty(), Tty()) is None # default "never": the console as before
 	assert not statusline.Shown()
+	monkeypatch.setattr(statusline, "EnableVT", lambda stream=None: True) # the fake console has no Windows handle
 	mode = statusline.Prepare({"statusLine": "auto"}, Tty(), Stdout())
 	assert (mode.how, mode.stderr) == ("ansi", False)
 	assert os.environ[statusline.ENV] == "ansi" and statusline.Shown()
@@ -95,7 +96,7 @@ def set_camera(counters, c, frames, frame_time, state=statusline.GRABBING):
 def test_what_it_says(monkeypatch):
 	line, counters, clocks = status()
 	clocks.now += 3
-	assert line.Text() == "Waiting for the first frame 0:03 · Camera0 0 (opening) · Camera1 0 (opening) frames"
+	assert line.Text() == "Waiting for the first frame 0:03 · Camera0 opening · Camera1 opening"
 	for second in range(4):
 		clocks.now += 1
 		set_camera(counters, 0, 60 * (second + 1), clocks.now)
@@ -109,7 +110,7 @@ def test_what_it_says(monkeypatch):
 	clocks.now += 65 # no frames: the trigger stopped
 	assert line.Text() == "Recording 1:09 · Camera0 300 · Camera1 290 frames · no new frames for 1:05"
 	set_camera(counters, 1, 290, clocks.now - 65, statusline.ENDED)
-	assert "Camera1 290 (ended)" in line.Text()
+	assert "Camera1 ended at 290" in line.Text()
 
 
 def test_it_fits_the_console(monkeypatch):
@@ -134,8 +135,8 @@ def test_the_main_process_draws_it_and_gives_the_console_back(monkeypatch):
 	print("All set") # print writes the text and its newline separately
 	line.Stop()
 	assert sys.stdout is out
-	assert out.writes == [CLEAR + "Waiting for the first frame 0:00 · Camera0 0 (opening) frames", CLEAR,
-		"All set", "\n", CLEAR + "Waiting for the first frame 0:00 · Camera0 0 (opening) frames", CLEAR]
+	assert out.writes == [CLEAR + "Waiting for the first frame 0:00 · Camera0 opening", CLEAR,
+		"All set", "\n", CLEAR + "Waiting for the first frame 0:00 · Camera0 opening", CLEAR]
 
 
 def test_a_camera_counts_its_frames_and_skips_its_progress_lines_while_it_is_shown(tmp_path, monkeypatch):

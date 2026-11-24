@@ -363,15 +363,21 @@ class StatusLine:
 	def Fit(self, head, rows, tail):
 		# The names with their counts, or the counts alone where they don't fit, cut as a last resort
 		def counts(named):
-			parts = []
+			# Named: "Camera0 opening", "Camera0 ended at 800", "Camera0 238";
+			# "frames" follows the list when a camera is recording
+			parts, running = [], False
 			for name, row in zip(self.names, rows):
 				count = "{:,}".format(row["frames"])
 				if row["state"] == OPENING:
-					count += " (opening)"
+					parts.append("{} opening".format(name) if named else count + " (opening)")
 				elif row["state"] == ENDED:
-					count += " (ended)"
-				parts.append("{} {}".format(name, count) if named else count)
-			return (self.sep.join(parts) + " frames") if named else "frames " + " / ".join(parts)
+					parts.append("{} ended at {}".format(name, count) if named else count + " (ended)")
+				else:
+					running = True
+					parts.append("{} {}".format(name, count) if named else count)
+			if not named:
+				return "frames " + " / ".join(parts)
+			return self.sep.join(parts) + (" frames" if running else "")
 		width = Width()
 		for named in (True, False):
 			text = self.sep.join([head, counts(named)] + tail)

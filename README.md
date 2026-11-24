@@ -118,7 +118,7 @@ Camera1 ready to trigger: flir Blackfly S BFS-U3-13Y3M serial 23501329, 1280x102
 ...
 Camera1 saved 24000 frames at 80 fps and its metadata: ./test/Camera1/0.mp4 holds all of them.
 ```
-Problems are still printed straight away, with the camera's name in front. A camera that does not get ready prints every step it took. With `cameraDebug: True`, every step is printed as before.
+Problems are still printed straight away (campy's own messages name their camera; errors from Python's logging keep their usual `ERROR:root:` form). A camera that does not get ready prints every step it took. With `cameraDebug: True`, every step is printed as before.
 
 While recording, each camera prints a progress line every `chunkLengthInSec`. For one status line at the bottom of the console instead, rewritten in place about once a second, include this in config.yaml:
 ```
