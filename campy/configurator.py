@@ -1,9 +1,11 @@
 """
 """
 
-import os, ast, yaml, time, logging
+import os, ast, yaml, time, logging, multiprocessing
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from campy.cameras import unicam
+from campy.utils import boards
+from campy import calibrate
 
 
 def DefaultParams():
@@ -16,6 +18,7 @@ def DefaultParams():
 	# Recording default parameters
 	params["numCams"] = 1
 	params["videoFolder"] = "./test"
+	params["sessionFolder"] = False # True: each run records into a new <videoFolder>/<date_time>/ (utils/folders.py)
 	params["videoFilename"] = "0.mp4"
 	params["frameRate"] = 100
 	params["recTimeInSec"] = 10
@@ -51,6 +54,13 @@ def DefaultParams():
 	params["chunkLengthInSec"] = 5
 	params["displayFrameRate"] = 10
 	params["displayDownsample"] = 2
+	params["displayMode"] = "per-camera" # "per-camera": a window per camera; "one-window": every camera in one
+
+	# Calibration parameters (campy/calibview.py, campy/calibrate.py)
+	params["calibrationMode"] = False # True: the one window starts in its calibration view (key c)
+	params["calibrationBoard"] = None # a calib.io board's id or SKU, "auto", or a dict (utils/boards.py)
+	params["calibrationSquareMm"] = None # "auto": the square size, when calib.io sells the grid in several
+	params["calibrate"] = None # {calibrat3: <checkout>, runner: auto|node|chrome, target: <frames>}
 
 	# Trigger parameters
 	params["triggerController"] = "arduino"
@@ -59,6 +69,9 @@ def DefaultParams():
 	params["digitalPins"] = [0,1,2,3,4,5,6]
 
 	return params
+
+
+DISPLAY_MODES = ("per-camera", "one-window")
 
 
 def AutoParams(params, default_params):
@@ -86,6 +99,11 @@ def AutoParams(params, default_params):
 			print("{} set to invalid value in config. Setting to default ({})."\
 					.format(key, default_value))
 
+	if params["displayMode"] not in DISPLAY_MODES:
+		print("displayMode set to invalid value in config ({}; one of {}). Setting to default ({})."\
+				.format(params["displayMode"], ", ".join(DISPLAY_MODES), default_params["displayMode"]))
+		params["displayMode"] = default_params["displayMode"]
+
 	# Handle missing config parameters
 	if "numCams" in params.keys():
 		if "cameraNames" not in params.keys():
@@ -104,11 +122,29 @@ def ConfigureParams():
 	clargs = ParseClargs(parser)
 	params = CombineConfigAndClargs(clargs)
 
+	if not isinstance(params["sessionFolder"], bool):
+		raise ValueError("sessionFolder must be True or False, not {!r}.".format(params["sessionFolder"]))
+	CheckCalibration(params)
+
 	# Optionally, user can manually set path to find ffmpeg binary.
 	if params["ffmpegPath"] is not "None":
 		os.environ["IMAGEIO_FFMPEG_EXE"] = params["ffmpegPath"]
 
 	return params
+
+
+def CheckCalibration(params):
+	# The calibration keys: raises ValueError on a wrong one, before any camera opens
+	if not isinstance(params["calibrationMode"], bool):
+		raise ValueError("calibrationMode must be True or False, not {!r}.".format(params["calibrationMode"]))
+	boards.Board(params["calibrationBoard"], params["calibrationSquareMm"])
+	if params["calibrationSquareMm"] is not None:
+		boards.SquareHint(params["calibrationSquareMm"])
+	calibrate.Settings(params)
+	if params["calibrationMode"] and params["displayMode"] != "one-window":
+		if multiprocessing.parent_process() is None: # said once, not again by each camera's process
+			print("calibrationMode: the calibration view is drawn in the one window, so displayMode is one-window.")
+		params["displayMode"] = "one-window"
 
 
 def ConfigureCamParams(systems, params, n_cam):
@@ -198,6 +234,14 @@ def ParseClargs(parser):
 		"--videoFolder", 
 		dest="videoFolder", 
 		help="Folder in which to save videos.",
+	)
+	parser.add_argument(
+		"--sessionFolder",
+		dest="sessionFolder",
+		type=ast.literal_eval,
+		help="If True, each run records into a new folder inside videoFolder, named by the date \
+			and time it started (e.g. 2026-11-24_14-05-11), laid out as a session folder for \
+			LUC3D and sleap-anipose. A calibration video goes into <camera>/calibration_images/.",
 	)
 	parser.add_argument(
 		"--videoFilename", 
@@ -387,6 +431,43 @@ def ParseClargs(parser):
 		dest="displayDownsample",
 		type=int,
 		help="Downsampling factor for displaying images.",
+	)
+	parser.add_argument(
+		"--displayMode",
+		dest="displayMode",
+		choices=DISPLAY_MODES,
+		help="'per-camera': a window for each camera. 'one-window': every camera side by side in one window, \
+			drawn in a process of its own that never slows the recording.",
+	)
+
+	parser.add_argument(
+		"--calibrationMode",
+		dest="calibrationMode",
+		type=ast.literal_eval,
+		help="If True, the one window starts in its calibration view (key c turns it on and off): the ChArUco \
+			board's corners in each camera, where they have been seen, and the frames each pair of cameras saw it in.",
+	)
+	parser.add_argument(
+		"--calibrationBoard",
+		dest="calibrationBoard",
+		type=yaml.safe_load,
+		help="The ChArUco board: a calib.io board's id or SKU (e.g. calibio-300x200-coarse or CCT300200C), \
+			'auto' (identified from its markers), or a dict of board_x, board_y, square_length, marker_length, \
+			marker_bits, dict_size.",
+	)
+	parser.add_argument(
+		"--calibrationSquareMm",
+		dest="calibrationSquareMm",
+		type=float,
+		help="With calibrationBoard 'auto': the board's square side in mm, when calib.io sells its grid in \
+			several sizes.",
+	)
+	parser.add_argument(
+		"--calibrate",
+		dest="calibrate",
+		type=yaml.safe_load,
+		help="After a calibration recording (a videoFilename with 'calibration' in it, with sessionFolder), \
+			calibrate the cameras with calibrat3: e.g. \"{calibrat3: ../calibrat3, runner: auto}\".",
 	)
 
 	# Microcontroller triggering arguments

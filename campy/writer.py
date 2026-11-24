@@ -3,11 +3,12 @@
 from imageio_ffmpeg import write_frames
 import os, sys, time, logging
 from campy.utils.utils import QueueKeyboardInterrupt
+from campy.utils import folders
 
 def OpenWriter(cam_params, queue):
 	try:
 		writing = False
-		folder_name = os.path.join(cam_params["videoFolder"], cam_params["cameraName"])
+		folder_name = folders.VideoFolder(cam_params)
 		file_name = cam_params["videoFilename"]
 		full_file_name = os.path.join(folder_name, file_name)
 

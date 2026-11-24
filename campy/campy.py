@@ -19,10 +19,11 @@ campy-acquire ./configs/campy_config.yaml
 import os, time, sys, logging, threading, queue
 from collections import deque
 import multiprocessing as mp
-from campy import writer, display, configurator
+from campy import writer, display, configurator, windowfeed, calibrate
 from campy.trigger import trigger
 from campy.cameras import unicam
 from campy.utils.utils import HandleKeyboardInterrupt
+from campy.utils import folders
 
 def OpenSystems():
 	# Configure parameters
@@ -48,17 +49,22 @@ def AcquireOneCamera(n_cam):
 	cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
 
 	# Initialize queues for display, video writer, and stop messages
-	dispQueue = deque([], 2)
 	writeQueue = deque()
 	stopReadQueue = deque([],1)
 	stopWriteQueue = deque([],1)
 
-	# Start image window display thread
-	threading.Thread(
-		target = display.DisplayFrames,
-		daemon = True,
-		args = (cam_params, dispQueue,),
-		).start()
+	if cam_params["displayMode"] == "one-window":
+		# Send frames to the window that shows every camera (campy/window.py)
+		dispQueue = windowfeed.Feed(cam_params, windowfeed.queues[n_cam])
+	else:
+		dispQueue = deque([], 2)
+
+		# Start image window display thread
+		threading.Thread(
+			target = display.DisplayFrames,
+			daemon = True,
+			args = (cam_params, dispQueue,),
+			).start()
 
 	# Start grabbing frames ("producer" thread)
 	threading.Thread(
@@ -71,13 +77,56 @@ def AcquireOneCamera(n_cam):
 	writer.WriteFrames(cam_params, writeQueue, stopReadQueue, stopWriteQueue)
 
 
+def UseRecordingFolder(folder):
+	# In each camera process: record into this run's folder (sessionFolder)
+	params["recordingFolder"] = folder
+
+
+def StartCameraProcess(cameraQueues, folder):
+	# Pool initializer: each camera process gets the one window's queues
+	# (displayMode "one-window") and this run's folder (sessionFolder)
+	if cameraQueues is not None:
+		windowfeed.SetQueues(cameraQueues)
+	if folder is not None:
+		UseRecordingFolder(folder)
+
+
 def Main():
+	# sessionFolder: this run's own new folder inside videoFolder, made once
+	# here. The camera processes read the config again, so they are told which.
+	folder = None
+	if folders.SessionFolders(params):
+		folders.CheckCameraNames(params)
+		folder = folders.MakeSessionFolder(params["videoFolder"])
+		UseRecordingFolder(folder)
+		print("Recording into {}".format(folder), flush=True)
+
+	# calibrate: say now what would keep campy from calibrating this recording afterwards
+	for problem in calibrate.Check(params):
+		print("This calibration recording can't be calibrated afterwards: {}.".format(problem), flush=True)
+
 	with HandleKeyboardInterrupt():
 		# Acquire cameras in parallel with Windows- and Linux-compatible pool
-		p = mp.get_context("spawn").Pool(params["numCams"])
-		p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		ctx = mp.get_context("spawn")
+		if params["displayMode"] == "one-window":
+			# One window, in a process of its own, shows every camera
+			window = windowfeed.WindowProcess(ctx, params)
+		else:
+			window = None
+		p = ctx.Pool(params["numCams"], StartCameraProcess, (window.queues if window else None, folder))
+		try:
+			p.map_async(AcquireOneCamera,range(params["numCams"])).get()
+		finally:
+			if window is not None:
+				window.Stop()
 
 	CloseSystems(systems, params)
 
+	if calibrate.Wanted(params):
+		# A calibration recording: calibrate the cameras from it (campy/calibrate.py)
+		calibrate.AfterRecording(params, folder or params["videoFolder"], window.result if window else None)
+
 # Open systems, creates global 'systems' and 'params' variables
-systems, params = OpenSystems()
+# (but not in the process of the window that shows every camera, which only draws frames)
+if mp.current_process().name != windowfeed.PROCESS_NAME:
+	systems, params = OpenSystems()
