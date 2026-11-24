@@ -44,7 +44,7 @@ def EncoderArgs(cam_params):
 			if preset == "None":
 				preset = "fast"
 			gpu_params = [
-				"-preset", preset, # set to "fast", "llhp", or "llhq" for h264 or hevc
+				"-preset", preset, # "fast" (= "p1" from ffmpeg 4.4), or "p1" (fastest) to "p7"; ffmpeg 9 dropped "llhp" and "llhq"
 				"-qp", quality,
 				"-bf:v", "0",
 				"-gpu", gpuID,
