@@ -46,6 +46,8 @@ def DefaultParams():
 	params["codec"] = "h264"  
 	params["quality"] = 21
 	params["preset"] = "None"
+	params["macCompatibleH265"] = False
+	params["denoise"] = "None" # "atadenoise": ffmpeg's temporal denoiser before the encoder (writer.DenoiseArgs)
 
 	# Display parameters
 	params["chunkLengthInSec"] = 5
@@ -367,6 +369,21 @@ def ParseClargs(parser):
 		type=ast.literal_eval,
 		help="Compression preset (e.g. 'slow', 'fast', 'veryfast'). \
 				Incorrect settings may break the pipe. Test with ffmpegLogLevel 'warning' or 'info'.",
+	)
+	parser.add_argument(
+		"--denoise",
+		dest="denoise",
+		type=ast.literal_eval,
+		help="'atadenoise' runs ffmpeg's temporal denoiser (atadenoise=s=5) on each camera's \
+			frames before they are encoded: smaller files of a still background, no pixel moved \
+			by more than 4 gray levels. 'None' (default) records as before.",
+	)
+	parser.add_argument(
+		"--macCompatibleH265",
+		dest="macCompatibleH265",
+		type=ast.literal_eval,
+		help="If True, H.265 video is written so that Apple's decoder opens it \
+			(MATLAB on a Mac, QuickTime, Safari): tagged hvc1, and closed GOPs on the CPU.",
 	)
 
 	# Display and CLI feedback arguments

@@ -12,12 +12,14 @@
 
 ## Installation
 1. Update graphics drivers
-2. Create and activate a new Python 3.7+ Anaconda environment:
+2. Create and activate a new Anaconda environment with Python 3.12 and ffmpeg 8.1. Use the Python your camera software is built for: FLIR's PySpin (Spinnaker 4.4) is built for Python 3.12 on Windows, macOS and Ubuntu 24.04, and for Python 3.10 only on Ubuntu 22.04, so use `python=3.10` there. Older Pythons are not recommended: current imageio-ffmpeg needs Python 3.10 or newer.
 ```
-conda create -n campy python=3.7 imageio-ffmpeg matplotlib ffmpeg==4.2.2 -c conda-forge
+conda create -n campy python=3.12 imageio-ffmpeg matplotlib ffmpeg=8.1 -c conda-forge
 conda activate campy
 pip install -U setuptools
 ```
+To encode on an NVIDIA GPU, check this ffmpeg first: see [NVIDIA GPU encoding (NVENC)](#nvidia-gpu-encoding-nvenc) below.
+
 3. Install camera software
 - If using Basler cameras, install Pylon software:
   - Install Basler Pylon with Developer options
@@ -37,7 +39,7 @@ pip install -U setuptools
   - Download and install Spinnaker SDK and SpinView software from FLIR's website: 
     https://www.flir.com/support-center/iis/machine-vision/downloads/spinnaker-sdk-and-firmware-download/
   - Manually install binary wheel for PySpin (included in the Spinnaker download)
-    E.g. for Python 3.7 on Windows amd64 system, install "spinnaker_python-2.3.0.77-cp37-cp37m-win_amd64.whl"
+    It must match your Python by its cpXY tag, and the Spinnaker SDK you installed by its version. E.g. for Spinnaker 4.4.0.246 and Python 3.12 on Windows, install "spinnaker_python-4.4.0.246-cp312-cp312-win_amd64.whl"
   ```
   pip3 install <wheel>
   ```
@@ -60,6 +62,27 @@ cd campy
 pip install -e .
 ```
 
+### NVIDIA GPU encoding (NVENC)
+`gpuMake: "nvidia"` needs an ffmpeg that is 4.4 or newer and is built for an NVENC version the NVIDIA driver supports.
+- ffmpeg 4.3 and older ask the driver for NVENC presets with a call that NVIDIA drivers from 591.44 (December 2025) reject for H.264 and HEVC. Every camera's writer then stops with a broken pipe, and ffmpeg's error is `Cannot get the preset configuration: unsupported param (12)`. These instructions used to pin `ffmpeg==4.2.2`, so environments made with them have this problem: make a new environment as above, or set `ffmpegPath` to a newer ffmpeg (below).
+- An ffmpeg built for a newer NVENC version than the driver supports fails the other way and says what it needs, e.g. `Driver does not support the required nvenc API version. Required: 13.1 Found: 13.0`. Update the driver, or use an ffmpeg built for the NVENC version the driver has.
+
+conda-forge's ffmpeg comes in builds for several NVENC versions, and conda picks one the driver supports when it creates the environment, by the CUDA version `nvidia-smi` shows: 12.8 or newer (driver 570 or newer) gets NVENC 13.0, and 12.2 to 12.7 an older NVENC version. With a driver older than 535 it gets an ffmpeg without NVENC: update the driver, or set `ffmpegPath`.
+
+To use another ffmpeg, put its path in the config; campy passes it to imageio-ffmpeg:
+```
+ffmpegPath: 'C:\ffmpeg\bin\ffmpeg.exe'
+```
+BtbN's builds (https://github.com/BtbN/FFmpeg-Builds/releases) take their NVENC version from the ffmpeg version: 8.0 and 8.1 are built for NVENC 13.0 (driver 570 or newer), 9.x and master for NVENC 13.1 (driver 610 or newer).
+
+To check a computer before recording, encode two seconds of test frames, without cameras, with the ffmpeg campy will use (`python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"` prints its path):
+```
+ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x1024:rate=60 -t 2 -pix_fmt rgb0 -c:v hevc_nvenc -preset fast -qp 24 -bf:v 0 -gpu 0 -y nvenc_test.mp4
+```
+It passes if it writes nvenc_test.mp4 and prints no errors. These are campy's settings for `codec: "h265"`, `quality: 24` and `gpuID: 0`; `codec: "h264"` uses `h264_nvenc`.
+
+For `preset`, `"fast"` (campy's default) works in every ffmpeg, and `p1` (fastest) to `p7` (best quality) from 4.4 on, where `"fast"` means `p1`, NVENC's fastest preset (4.2.2 used the older "high performance" preset). ffmpeg 9 removed the older names, such as `llhp` and `llhq`.
+
 ## Usage
 
 ### Configuration
@@ -69,6 +92,20 @@ pip install -e .
 - For help setting config parameters:
 ```
 campy-acquire --help
+```
+- H.265 on a Mac: MATLAB's VideoReader, QuickTime and Safari use Apple's decoder, which opens H.265 in an .mp4 or .mov only when the file tags it `hvc1` (ffmpeg's own tag is `hev1`). To record H.265 they can open, include in config.yaml:
+```
+codec: "h265"
+macCompatibleH265: True
+```
+  This tags the video `hvc1` for every encoder, and with the CPU (`gpuID: -1`) also asks libx265 for closed GOPs (`-x265-params open-gop=0`): Apple's decoder fails on libx265's default open GOPs even when the file is tagged `hvc1`. The default, `False`, records as before. An existing .mp4 can be retagged without re-encoding: `ffmpeg -i 0.mp4 -c copy -tag:v hvc1 0-hvc1.mp4` (a libx265 video keeps its open GOPs).
+
+- Denoising before encoding: `denoise: "atadenoise"` runs ffmpeg's temporal denoiser [`atadenoise`](https://ffmpeg.org/ffmpeg-filters.html#atadenoise) (`s=5`) on each camera's frames before they are encoded. Off by default (`"None"`), and it can be set per camera (a list, like other settings).
+  - **What it does:** each pixel is averaged with the same pixel in the 2 frames before and the 2 after, but only while they differ from it by at most 4 gray levels (of 255). Sensor noise in a still background is smoothed; a moving animal's edges change by tens of levels from frame to frame and are left as they are. No pixel moves by more than 4 gray levels.
+  - **Why:** noise is what an encoder spends most bits on in a still arena. With two mice in an 8-camera arena, AV1 on Quick Sync wrote files 20-28% smaller, with no measurable change in SLEAP keypoints or in how well the cameras agreed in 3D.
+  - **CPU:** it runs on the CPU, on one thread per camera (`-filter_threads 1`); with 8 cameras at 60 fps that cost about the same CPU as no filter. It works with every encoder. Only mono cameras were measured; colour and Bayer frames are converted before the filter as well as after it, which costs more.
+```
+denoise: "atadenoise"
 ```
 
 ### Camera Triggering
