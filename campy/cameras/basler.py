@@ -3,6 +3,7 @@
 import pypylon.pylon as pylon
 import pypylon.genicam as geni
 from campy.cameras import unicam
+from campy.utils.utils import Say
 import os, sys, time, logging
 import numpy as np
 from collections import deque
@@ -115,7 +116,7 @@ def ReleaseFrame(grabResult):
 
 
 def CloseCamera(cam_params, camera):
-	print('Closing {}... Please wait.'.format(cam_params["cameraName"]))
+	Say('Closing {}... Please wait.'.format(cam_params["cameraName"]))
 	# Close Basler camera after acquisition stops
 	camera.StopGrabbing()
 	camera.Close()

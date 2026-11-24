@@ -7,6 +7,7 @@ import os, sys, time, csv, logging
 import numpy as np
 from collections import deque
 from scipy import io as sio
+from campy.utils.utils import Say
 
 
 def ImportCam(make):
@@ -17,7 +18,7 @@ def ImportCam(make):
 	elif make == "emu":
 		from campy.cameras import emu as cam
 	else:
-		print('Camera make is not supported by CamPy. Check config.', flush=True)
+		Say('Camera make is not supported by CamPy. Check config.')
 	return cam
 
 
@@ -52,7 +53,7 @@ def OpenCamera(cam_params, stopWriteQueue):
 	try:
 		camera, cam_params = cam.OpenCamera(cam_params)
 
-		print("Opened {}: {} {} serial# {}".format( \
+		Say("Opened {}: {} {} serial# {}".format( \
 			cam_params["cameraName"],
 			cam_params["cameraMake"], 
 			cam_params["cameraModel"],
@@ -110,7 +111,7 @@ def GrabData(cam_params):
 def StartGrabbing(camera, cam_params, cam):
 	grabbing = cam.StartGrabbing(camera)
 	if grabbing:
-		print(cam_params["cameraName"], "ready to trigger.")
+		Say("{} ready to trigger.".format(cam_params["cameraName"]))
 	return grabbing
 
 
@@ -118,7 +119,7 @@ def CountFPS(grabdata, frameNumber, timeStamp):
 	if frameNumber % grabdata["chunkLengthInFrames"] == 0:
 		timeElapsed = timeStamp - grabdata["timeStamp"][0]
 		fpsCount = round((frameNumber - 1) / timeElapsed, 1)
-		print('{} collected {} frames at {} fps for {} sec.'\
+		Say('{} collected {} frames at {} fps for {} sec.'\
 			.format(grabdata["cameraName"], frameNumber, fpsCount, round(timeElapsed)))
 
 
@@ -188,7 +189,7 @@ def SaveMetadata(cam_params, grabdata):
 		frame_count = grabdata['frameNumber'][-1]
 		time_count = grabdata['timeStamp'][-1]
 		fps_count = int(round(frame_count/time_count))
-		print('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
+		Say('{} saved {} frames at {} fps.'.format(cam_params["cameraName"], frame_count, fps_count))
 
 		meta = cam_params
 
@@ -216,16 +217,16 @@ def SaveMetadata(cam_params, grabdata):
 				if isinstance(row[1],(list,str,int,float)):
 					w.writerow(row)
 
-		print('Saved metadata for {}.'.format(cam_params['cameraName']))
+		Say('Saved metadata for {}.'.format(cam_params['cameraName']))
 
 	except Exception as e:
 		logging.error('Caught exception: {}'.format(e))
 
 
 def CloseSystems(systems, params):
-	print('Closing systems...')
+	Say('Closing systems...')
 	makes = GetMakeList(params)
 	for m in range(len(makes)):
 		cam = ImportCam(makes[m])
 		cam.CloseSystem(systems[makes[m]]["system"], systems[makes[m]]["deviceList"])
-	print('Exiting campy...')
+	Say('Exiting campy...')

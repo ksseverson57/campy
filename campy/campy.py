@@ -22,7 +22,7 @@ import multiprocessing as mp
 from campy import writer, display, configurator
 from campy.trigger import trigger
 from campy.cameras import unicam
-from campy.utils.utils import HandleKeyboardInterrupt
+from campy.utils.utils import HandleKeyboardInterrupt, StartPrinter, StopPrinter
 
 def OpenSystems():
 	# Configure parameters
@@ -44,6 +44,17 @@ def CloseSystems(systems, params):
 
 
 def AcquireOneCamera(n_cam):
+	# What this camera process prints is written by a thread of its own, so a
+	# slow console or log file never holds up the camera; all of it is written
+	# before the process ends, even when it fails
+	StartPrinter()
+	try:
+		RecordOneCamera(n_cam)
+	finally:
+		StopPrinter()
+
+
+def RecordOneCamera(n_cam):
 	# Initialize param dictionary for this camera stream
 	cam_params = configurator.ConfigureCamParams(systems, params, n_cam)
 
