@@ -90,7 +90,7 @@ def GetTimeStamp(grabResult):
 
 def DisplayImage(cam_params, dispQueue, grabResult):
 	# Basler display window is more performant than generic matplot figure
-	if sys.platform == 'win32':
+	if unicam.PylonWindow(cam_params):
 		dispQueue.SetImage(grabResult)
 		dispQueue.Show()
 	else:

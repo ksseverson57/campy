@@ -94,6 +94,17 @@ startArduino: False
 cameraTrigger: "Line0" # or "Line3"
 ```
 
+### Display
+By default each camera opens a preview window of its own. To see every camera side by side in one window instead:
+```
+displayMode: "one-window" # default: "per-camera"
+displayFrameRate: 10 # frames per second shown for each camera
+displayDownsample: 2 # each shown frame is 1/2 the width and height
+```
+- The window runs in a process of its own, at a lower priority than the cameras. A camera never waits for it: if the window falls behind, or you close it, the frames it has not taken yet are skipped, and the recording goes on. It closes when the recording ends.
+- Each camera's badge shows its frame rate, or in red what is wrong: SLOW (below 95% of frameRate), DROPPED (frames missing from the camera's timestamps), ENCODER BEHIND (frames waiting to be written), or NO FRAMES (none for 3 s; that camera's last frame stays dimmed while the others go on).
+- Double click a camera to see it alone, and again to see every camera. The mouse wheel zooms into a camera about the pointer; drag to move it; 0 shows the whole frame again. Keys 1-9 show one camera, the arrow keys the previous or next one, g or Esc every camera.
+
 ### Start Recording:
 ```
 campy-acquire ./configs/campy_config.yaml
